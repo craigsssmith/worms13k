@@ -1,0 +1,130 @@
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="world">
+        <svg id="svg" width="500" height="500">
+          <defs>
+
+            <!-- Gradients -->
+            <linearGradient id="fill-sky" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#0068e0" />
+              <stop offset="50%" stop-color="#0092E0" />
+              <stop offset="100%" stop-color="#0092E0" />
+            </linearGradient>
+            <linearGradient id="fill-background" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#401D00" />
+              <stop offset="100%" stop-color="#000000" />
+            </linearGradient>
+            <linearGradient id="fill-soil-light" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#954400" />
+              <stop offset="100%" stop-color="#723400" />
+            </linearGradient>
+            <linearGradient id="fill-soil-dark" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#622D00" />
+              <stop offset="100%" stop-color="#401D00" />
+            </linearGradient>
+            <linearGradient id="fill-powerbar" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stop-color="#00FF00" />
+              <stop offset="50%" stop-color="#FFFF00" />
+              <stop offset="100%" stop-color="#FF0000" />
+            </linearGradient>
+
+            <!-- Hidden missile prototype that get cloned when the user fires one. -->
+            <g id="missile">
+              <path d="M-10,-3 L10,-3 L10,3 L-10,3 Z" fill="#fff" />
+            </g>
+
+            <!-- Hidden tracer line prototype. -->
+            <line id="tracer" stroke="#fff" stroke-width="2" />
+
+          </defs>
+
+          <!-- Wobble effect that is applied to all of the terrain. -->
+          <filter id="wobble">
+            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="turbulence" />
+            <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="5" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+
+          <!-- Soil texture that is applied to the top soil layer to make it look more natual. -->
+          <filter id="soil-texture" primitiveUnits="userSpaceOnUse" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence id="soil-noise" type="fractalNoise" baseFrequency="0.01" numOctaves="3" />
+            <feComponentTransfer>
+              <feFuncR type="discrete" tableValues="0 0 1"/>
+              <feFuncG type="discrete" tableValues="0 0 0 1 1"/>
+              <feFuncB type="discrete" tableValues="0 1"/>
+            </feComponentTransfer>
+            <feColorMatrix values="1 0 0 0 0 -1 1 0 0 0 -1 -1 1 0 0 0 0 0 0 1"/>
+            <feColorMatrix values="0.10 -0.10 0.10 0.00 0.50 0.10 -0.10 0.10 0.00 0.50 0.10 -0.10 0.10 0.00 0.50 0.00 0.00 0.00 0.00 1.00"/>
+            <feComposite in="SourceGraphic" result="comp" operator="arithmetic" k1="1.7" />
+          </filter>
+
+          <!-- -->
+          <filter id="clouds">
+            <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="5" />
+            <feOffset dx="0" dy="0" id="clouds-offset" />
+            <feComponentTransfer>
+              <feFuncA type="gamma" exponent="1.1"/>
+            </feComponentTransfer>
+            <feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1 .4"/>
+            <feBlend in2="SourceGraphic"/>
+          </filter>
+
+          <!-- Background sky layer. -->
+          <path id="sky" fill="url(#fill-sky)" filter="url(#clouds)" />
+
+          <!-- All of the terrain and masks that are used to punch holes. -->
+          <g>
+            <mask id="mask-background" mask-type="luminance" />
+            <mask id="mask-soil-dark" mask-type="luminance" />
+            <mask id="mask-soil-light" mask-type="luminance" />
+            <mask id="mask-grass-dark" mask-type="luminance" />
+            <mask id="mask-grass-light" mask-type="luminance" />
+            <path id="background" fill="url(#fill-background)" />
+            <path id="grass-dark" fill="#4ABE00" mask="url(#mask-grass-dark)" />
+            <path id="grass-light" fill="#8AE000" mask="url(#mask-grass-light)" />
+            <path id="soil-dark" fill="url(#fill-soil-dark)" mask="url(#mask-soil-dark)" />
+            <path id="soil-light" fill="url(#fill-soil-light)" mask="url(#mask-soil-light)" filter="url(#soil-texture)" />
+          </g>
+
+          <!-- Layer used to store all of the players. -->
+          <g id="players" />
+          
+          <!-- Crosshairs that show the direction the user is firing in. -->
+          <g id="crosshairs">
+            <path d="M-12,0 L-5,0 M0,-12 L0,-5 M12,0 L5,0 M0,12 L0,5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+          </g>
+
+          <!-- Powerbar that appears when the user is firing some weapons. -->
+          <g id="powerbar">
+            <rect x="0" y="-5" width="80" height="10" rx="2" fill="url(#fill-powerbar)" mask="url(#mask-powerbar)" />
+          </g>
+
+          <!-- Mask that is applied to the powerbar to make it 'grow' without changing the gradient. -->
+          <mask id="mask-powerbar" mask-type="luminance">
+            <rect id="powerbar-power" x="0" y="-5" width="40" height="10" rx="2" fill="#fff" />
+          </mask>
+
+          <!-- Random debugging stuff. -->
+          <path stroke="#f0f" stroke-width="4" stroke-linecap="round" id="debug" />
+
+        </svg>
+      </div>
+    </div>
+
+    <div id="wind">
+      <div id="windleft"></div>
+      <div id="windright"></div>
+      <div id="winddiv"></div>
+    </div>
+
+    <div id="weapon">Missile</div>
+
+    <div id="explosion" class="explosion"></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

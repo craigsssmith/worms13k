@@ -1,0 +1,82 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+/* svg {
+  transform: translateX(var(--cx));
+} */
+
+#viewport {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#world {
+  position: aboslute;
+  top: 0;
+  left: 0;
+  transform: translateX(var(--cx));
+}
+
+#weapon {
+  position: absolute;
+  top: 26px;
+  left: 26px;
+  height: 32px;
+  line-height: 32px;
+  border-radius: 5px;
+  background: #000;
+  color: #fff;
+  padding: 0 10px;
+}
+
+#wind {
+  position: absolute;
+  left: calc(50vw - 200px);
+  top: 26px;
+  width: 398px;
+  height: 26px;
+  background: linear-gradient(to right, #f00, #ff0, #0f0, #ff0, #f00);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 3px #000, inset 0 0 0 3px #000;
+  border-radius: 5px;
+}
+
+#wind * {
+  position: absolute;
+  top: 3px;
+  width: 100px;
+  height: 20px;
+  background: #000;
+}
+
+#windleft {
+  left: 3px;
+}
+
+#windright {
+  right: 3px;
+}
+
+#winddiv {
+  top: 0;
+  width: 2px;
+  height: 26px;
+  background: #fff;
+  left: calc(50% - 1px);
+}
+
+.explosion {
+  display: none;
+  position: absolute;
+  background: #fff;
+  border-radius: 100%;
+  width: var(--d);
+  height: var(--d);
+  top: var(--y);
+  left: var(--x);
+  transform: translate(-50%, -50%) scale(var(--s, 1));
+}

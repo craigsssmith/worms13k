@@ -1,0 +1,19 @@
+{
+  "name": "worms13k",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && npm run zip && npm run size",
+    "preview": "vite preview",
+    "zip": "zip -9 dist/test.zip dist/index.html",
+    "size": "stat -f%z dist/test.zip"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.3",
+    "vite": "^7.1.0",
+    "vite-plugin-html-minifier": "^1.0.5",
+    "vite-plugin-singlefile": "^2.3.0"
+  }
+}
