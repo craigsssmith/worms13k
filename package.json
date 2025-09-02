@@ -5,15 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && npm run zip && npm run size",
+    "build": "tsc && vite build && npm run size",
     "preview": "vite preview",
     "zip": "zip -9 dist/test.zip dist/index.html",
-    "size": "stat -f%z dist/test.zip"
+    "size": "stat -f%z dist/index.zip"
   },
   "devDependencies": {
+    "js13k-vite-plugins": "^0.4.0",
     "typescript": "~5.8.3",
     "vite": "^7.1.0",
     "vite-plugin-html-minifier": "^1.0.5",
     "vite-plugin-singlefile": "^2.3.0"
+  },
+  "dependencies": {
+    "zzfx": "^1.3.0"
   }
 }

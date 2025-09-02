@@ -4,6 +4,17 @@
   font-family: sans-serif;
 }
 
+* {
+  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNyIgaGVpZ2h0PSIzNiI+CiAgPHBhdGggZmlsbD0iI0ZGNDE4QiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIGQ9Im0yMCAyNSAyIDZjMCAyLTQgNC03IDQtMiAwLTMtMi01LTVsLTUgMmMtMyAwLTQtNi00LTE1QzEgOSAxIDMgMyAxYzItMSA3IDIgMTMgOCA2IDQgMTAgOSAxMCAxMXMtMiA0LTYgNVoiLz4KICA8cGF0aCBmaWxsPSIjRkY4NTlGIiBkPSJNNCA1YzEtMyAzLTEgNSAxLTUtMi01IDYtNCAyMkMzIDIxIDMgOCA0IDVaIi8+Cjwvc3ZnPg==') 6 5, pointer;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0068E0;
+}
+
 /* svg {
   transform: translateX(var(--cx));
 } */
@@ -21,28 +32,56 @@
   transform: translateX(var(--cx));
 }
 
-#weapon {
-  position: absolute;
-  top: 26px;
-  left: 26px;
-  height: 32px;
-  line-height: 32px;
+#weaponLabel, #wind, #hp, .weapon {
+  background: #222;
+  border: 2px solid var(--c, #fff);
+  box-shadow: 0 0 0 3px #222, inset 0 0 0 3px #222;
   border-radius: 5px;
-  background: #000;
-  color: #fff;
-  padding: 0 10px;
+}
+
+#weapons {
+  position: absolute;
+  left: 50vw;
+  top: 26px;
+  transform: translate(-50%, -150px);
+}
+
+.weapon {
+  display: inline-block;
+  height: 48px;
+  width: 48px;
+  margin-right: 12px;
+  box-shadow: 0 0 0 3px #222;
+  background: #fff;
+}
+
+.weapon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.weapon.active {
+  border-color: #8AE000;
+  background: #8AE000;
+}
+
+#weaponLabel {
+  position: absolute;
+  top: 90px;
+  left: 50vw;
+  height: 14px;
+  padding: 6px;
+  transform: translate(-50%, -150px);
 }
 
 #wind {
   position: absolute;
-  left: calc(50vw - 200px);
-  top: 26px;
+  left: 50vw;
+  bottom: 26px;
   width: 398px;
   height: 26px;
   background: linear-gradient(to right, #f00, #ff0, #0f0, #ff0, #f00);
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 3px #000, inset 0 0 0 3px #000;
-  border-radius: 5px;
+  transform: translate(-50%, 100px);
 }
 
 #wind * {
@@ -50,7 +89,7 @@
   top: 3px;
   width: 100px;
   height: 20px;
-  background: #000;
+  background: #222;
 }
 
 #windleft {
@@ -69,14 +108,57 @@
   left: calc(50% - 1px);
 }
 
-.explosion {
-  display: none;
+#glyph {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background: url(data:image/gif;base64,R0lGODdhAwEIAIAAAAAAAP///yH5BAgKAAAALAAAAAADAQgAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXOPAdLlRZFj7gYTGZlCFZPo2L1b1dxzZsNZu5RtSfh05svn8UJ5tLrYa7dW6WWs2fBlMh+U9PfffBPi0FVh4QJIFR0T2UXY3pDeIGDb3BBjJVESVKLPz1omn2RdXVEpIF3PZmaV1dbd2tfjWlykiaklrW9tSJ/h6mcqHwuPZM5mS5FRZYrIzp1ypm2wspYwlXadoqBsVilf1vd2tfYNNOBl9brY5BRkurFCLCo1oqn7o/fk8w8yOXN0FFDNRxbgAmQVmT7tdzqCBW5cizigg8lgZ1GROksaNEBw7evwIMqTIkSRLmjx5sgAAOw==);
+  background-size: auto 16px;
+  image-rendering: pixelated;
+  margin-right: 2px;
+}
+
+.flash {
+  filter: brightness(100);
+}
+
+#hp {
   position: absolute;
-  background: #fff;
-  border-radius: 100%;
-  width: var(--d);
-  height: var(--d);
   top: var(--y);
   left: var(--x);
-  transform: translate(-50%, -50%) scale(var(--s, 1));
+  transform: translate(-50%, -50%);
+  padding: 4px;
+  text-wrap: nowrap;
+  border: none;
+}
+
+#hp::after {
+  display: block;
+  position: absolute;
+  content: '';
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--c);
+  border-radius: 3px;
+  mix-blend-mode: multiply;
+}
+
+#waves {
+  animation: 500ms ease-in-out infinite alternate waves;
+}
+
+@keyframes waves {
+  from {
+    d: path('M0,0 Q40,50 80,15 Q120,50 160,0 L160,100 L0,100 Z');
+  }
+  to {
+    d: path('M0,15 Q40,50 80,0 Q120,50 160,15 L160,100 L0,100 Z');
+  }
+}
+
+.started :is(#weapons, #weaponLabel, #wind) {
+  transform: translate(-50%, 0);
+  transition: transform 1s ease-out;
 }

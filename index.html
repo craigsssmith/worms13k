@@ -11,46 +11,175 @@
 
             <!-- Gradients -->
             <linearGradient id="fill-sky" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#0068e0" />
-              <stop offset="50%" stop-color="#0092E0" />
-              <stop offset="100%" stop-color="#0092E0" />
+              <stop offset="0%" stop-color="#0068E0" />
+              <stop offset="100%" stop-color="#00B2E0" />
             </linearGradient>
-            <linearGradient id="fill-background" x1="0" x2="0" y1="0" y2="1">
+            <linearGradient id="f0" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stop-color="#401D00" />
+              <stop offset="40%" stop-color="#401D00" />
               <stop offset="100%" stop-color="#000000" />
             </linearGradient>
-            <linearGradient id="fill-soil-light" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#954400" />
-              <stop offset="100%" stop-color="#723400" />
-            </linearGradient>
-            <linearGradient id="fill-soil-dark" x1="0" x2="0" y1="0" y2="1">
+            <linearGradient id="f3" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stop-color="#622D00" />
               <stop offset="100%" stop-color="#401D00" />
             </linearGradient>
-            <linearGradient id="fill-powerbar" x1="0" x2="1" y1="0" y2="0">
+            <linearGradient id="f4" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#954400" />
+              <stop offset="75%" stop-color="#612C00" />
+            </linearGradient>
+            <linearGradient id="f-pb" x1="0" x2="1" y1="0" y2="0">
               <stop offset="0%" stop-color="#00FF00" />
               <stop offset="50%" stop-color="#FFFF00" />
               <stop offset="100%" stop-color="#FF0000" />
             </linearGradient>
+            <linearGradient id="f-water" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#00B2E077" />
+              <stop offset="20%" stop-color="#0068E0" />
+              <stop offset="50%" stop-color="#002DC0" />
+              <stop offset="100%" stop-color="#0C0073" />
+            </linearGradient>
 
-            <!-- Hidden missile prototype that get cloned when the user fires one. -->
+            <!-- Repeating water pattern/fill. -->
+            <pattern id="p-water" x="0" y="0" width="0.016" height="1">
+              <path id="waves" fill="url(#f-water)" d="M0,0 Q40,40 80,15 Q120,40 160,0 L160,100 L0,100 Z" />
+            </pattern>
+
+            <!-- Geometric pattern for the soil layers. -->
+            <pattern id="p-soil" width="100" height="100" patternUnits="userSpaceOnUse">
+              <path fill="#EE9200" opacity="0.1" d="M50 100L0 50V0l50 50 50-50h0v50l-50 50z" />
+              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="50" cy="70" />
+              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="0" cy="30" />
+              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="100" cy="30" />
+              <circle id="dot" stroke="#401D00" opacity="0.15" stroke-width="25" r=".5" cx="50" cy="20" />
+              <circle id="dot" stroke="#401D00" opacity="0.15" stroke-width="25" r=".5" cx="100" cy="80" />
+              <circle id="dot" stroke="#401D00" opacity="0.15" stroke-width="25" r=".5" cx="0" cy="80" />
+            </pattern>
+
+            <g id="player" fill="none">
+              <path stroke="#EFB393" stroke-linecap="round" stroke-width="14" d="M51 19c3 27 1 40-4 40-8 0-8-11-18-11S21 59 7 59"/>
+              <ellipse cx="55" cy="21" fill="#FFF" rx="5" ry="10"/>
+              <ellipse cx="57.5" cy="22.5" fill="#2B2B2B" rx="2.5" ry="4.5"/>
+              <!-- <path fill="#FF008E" d="M0 0h64v64H0z" opacity=".5"/> -->
+            </g>
+
+            <!-- Hidden missile prototype. -->
             <g id="missile">
-              <path d="M-10,-3 L10,-3 L10,3 L-10,3 Z" fill="#fff" />
+              <g transform="scale(0.6) translate(-26 -16)">
+                <path fill="#24282F" d="M3 6c3-4 24-6 32-4 8 1 16 9 16 14s-9 14-16 15-29-1-32-4S0 9 3 6Z"/>
+                <path fill="red" d="M35 2c8 1 16 9 16 14s-9 13-16 15c-3-4-5-9-5-15s2-11 5-14Z"/>
+                <path fill="#FFC400" d="M48 9c2 2 3 5 3 7v2l-1 2-3 2c-3 0-5-3-5-6 0-4 2-7 5-7h1Z"/>
+              </g>
+            </g>
+
+            <!-- Hidden dynamite prototype. -->
+            <g id="dynamite">
+              <g transform="scale(0.6) translate(-27 -48)" fill="none">
+                <path fill="#9C0101" d="m33 58-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+                <ellipse cx="42" cy="22" fill="#F43C1E" rx="12" ry="5"/>
+                <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M41 20c7-12-16-1-13-16"/>
+                <path fill="#9C0101" d="M3 58 0 22h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+                <ellipse cx="12" cy="22" fill="#F43C1E" rx="12" ry="5"/>
+                <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M12 20C7 9 24 17 28 3"/>
+                <path fill="#DA2200" d="m18 62-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+                <ellipse cx="27" cy="26" fill="#F43C1E" rx="12" ry="5"/>
+                <path stroke="#FFDB75" stroke-linecap="round" stroke-width="5" d="M27 24c4-6-5-12 1-21"/>
+              </g>
+            </g>
+
+            <!-- Hidden grenade prototype. -->
+            <g id="grenade">
+              <g transform="scale(0.5) translate(-21 -17)">
+                <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="3" d="M21 2c12 0 19 6 19 19"/>
+                <path fill="#0B9B53" d="M16 0h9v5h-9z"/>
+                <ellipse cx="21" cy="18" fill="#06B559" rx="14" ry="16"/>
+                <path fill="#0B9B53" d="M7 17c0 8 5 14 12 14 6 0 11-6 11-14S25 3 20 2h1c8 0 14 7 14 16s-6 16-14 16S7 27 7 18v-1Z"/>
+                <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="4" d="M7 19h28"/>
+              </g>
+            </g>
+
+            <!-- Hidden holy hand grenade prototype. -->
+            <g id="holy">
+              <g transform="scale(0.5) translate(-32 -35)">
+                <path fill="#24282F" d="M64 40c-1-16-13-28-32-28S1 24 0 40c-1 10 3 18 11 23 0 0 8 6 21 6s21-6 21-6c8-5 12-13 11-23Z"/>
+                <path fill="#3B3B3B" d="M26 24h3c1-2 2-6 1-12l-9 1c3 4 3 10 5 11ZM38 24h-3c-1-2-2-6-1-12l9 1c-3 4-3 10-5 11Z"/>
+                <path fill="#E30000" d="M55 38c0-4-1-10-3-10h-2l-13 8c-5 4 2 13 8 14 6 0 10-6 10-12Z"/>
+                <path fill="#24282F" d="M41 42a4 4 0 0 0 7 0v2a4 4 0 1 1-7-2Z"/>
+                <path fill="#E30000" d="M9 38c0-4 1-10 3-10h2l13 8c5 4-2 13-8 14-6 0-10-6-10-12Z"/>
+                <path fill="#24282F" d="M16 42a4 4 0 0 0 7 0l1 2a4 4 0 1 1-8-2Z"/>
+                <path fill="#24282F" d="M2 30C-2 16 1 5 4 1l4-1c3 1 4 10 14 13M62 30c4-14 1-25-2-29l-4-1c-3 1-4 10-14 13"/>
+                <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 60c9 0 13-4 13-9 0 5 4 9 13 9"/>
+                <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-width="2" d="M57 6c1 9-3 13-3 14 0 2 1 3 4 5M7 6c-1 9 3 13 3 14 0 2-1 3-4 5"/>
+              </g>
+            </g>
+
+            <!-- Uzi image, used only for the weapons menu. -->
+            <g id="uzi" transform="scale(0.75)">
+              <path fill="none" stroke="#999" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m40 41 7-8-6-5"/>
+              <path fill="none" stroke="#4D4D4D" stroke-linecap="round" stroke-width="3" d="m36 33 3 2"/>
+              <path fill="gray" d="m27 42 7-7 14 14-7 7z"/>
+              <path fill="#999" d="M3 43 40 6l12 11-38 38z"/>
+              <path fill="#B3B3B3" d="m44 9 7-7 4 5-7 7z"/>
+              <path fill="#999" d="m47 12 7-7 1 2-7 7z"/>
+              <path fill="#666" d="m3 43 5-5h14l25-25 5 4-38 38z"/>
+              <path fill="#CCC" d="m18 33 7-7 5 5-7 7z"/>
+              <path fill="#B3B3B3" d="m39 7-3-3-3 6 2 2z"/>
+              <path fill="#4D4D4D" d="m42 55 5-5 7 6v2l-5 4h-1l-6-7ZM41 56l-4 4c-7-7-6-12-13-15l3-3 14 14Z"/>
+            </g>
+
+            <!-- Minigun (red uzi) image, used only for the weapons menu. -->
+            <g id="minigun" transform="scale(0.75)">
+              <path fill="none" stroke="#D00" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m40 41 7-8-6-5"/>
+              <path fill="none" stroke="#60001B" stroke-linecap="round" stroke-width="3" d="m36 33 3 2"/>
+              <path fill="#AC0000" d="m27 42 7-7 14 14-7 7z"/>
+              <path fill="#D00" d="M3 43 40 6l12 11-38 38z"/>
+              <path fill="#FF4D29" d="m44 9 7-7 4 5-7 7z"/>
+              <path fill="#D00" d="m47 12 7-7 1 2-7 7z"/>
+              <path fill="#8C000B" d="m3 43 5-5h14l25-25 5 4-38 38z"/>
+              <path fill="#FF4D29" d="m18 33 7-7 5 5-7 7zM39 7l-3-3-3 6 2 2z"/>
+              <path fill="#60001B" d="m42 55 5-5 7 6v2l-5 4h-1l-6-7ZM41 56l-4 4c-7-7-6-12-13-15l3-3 14 14Z"/>
+            </g>
+
+            <!-- Shotgun image, used only for the weapons menu. -->
+            <g id="shotgun" transform="scale(0.75)">
+              <path fill="#E6E9ED" d="M27 27 59 0l2 3-32 27z"/>
+              <path fill="#CCD1D9" d="m25 34 16-14 5 5-17 14z"/>
+              <path fill="#965353" d="M41 20 54 9l5 5-13 11z"/>
+              <path fill="#7F4545" d="m44 18 3-3 4 6-3 2zM49 13l3-2 5 5-3 3z"/>
+              <path stroke="#434A54" stroke-linecap="round" stroke-width="8" d="m28 36 5 3"/>
+              <path fill="#965353" d="m3 51 15-15h3l3-7 6-5 3 3-4 19-5 1-8 16-13-9a2 2 0 0 1 0-3Z"/>
             </g>
 
             <!-- Hidden tracer line prototype. -->
             <line id="tracer" stroke="#fff" stroke-width="2" />
 
+            <!-- Hidden explosion prototype. -->
+            <circle id="explosion" fill="#fff" cx="0" cy="0" />
+
+            <!-- Home screen logo mask -->
+            <g id="logo">
+              <path fill="#fff" fill-rule="nonzero" d="M76 4v5l-9 50H44l-5-28-5 26-23 1L1 11V5l20-1 4 32 6-30h16l6 30 4-34 19 2Zm53 25a29 29 0 0 1-3 13 27 27 0 0 1-9 10 26 26 0 0 1-21 3 27 27 0 0 1-11-7 25 25 0 0 1-7-11 26 26 0 0 1 0-14A28 28 0 0 1 89 7a25 25 0 0 1 14-4l10 2c4 1 6 3 9 5l5 8 2 11Zm-18 1-1-3-1-3-2-2-4-1-3 1a8 8 0 0 0-4 4l-1 4v3l2 3 2 2 4 1a8 8 0 0 0 7-6l1-3Zm69-9-1 6a18 18 0 0 1-4 8l-5 4 9 14v5l-17 2-7-18-5 1-1 17h-17a9397 9397 0 0 0 1-56 53 53 0 0 1 17-4h6l9 1 8 4 5 7 2 9Zm-19 1v-3l-2-3-2-1-3-1a12 12 0 0 0-3 0l-1 16h5l3-2 2-2 1-4Zm93 11a183 183 0 0 1-1 23l-21 1a554 554 0 0 0 1-39l-1-2-1-1-2 2-1 2-1 3a51 51 0 0 0 0 6l1 4a259 259 0 0 1-2 25l-19 1a461 461 0 0 0 1-39v-2l-1-1-2 1-1 2-1 3a39 39 0 0 0 0 7l-1 30h-21a5871 5871 0 0 1 4-55l19-1v4a28 28 0 0 1 5-4l2-1 3-1h4l3 1 2 2 2 4a44 44 0 0 1 5-5 13 13 0 0 1 7-2l7 2 5 4 3 5a44 44 0 0 1 2 14v7Zm46 6-2 10-5 7-8 4-10 1-4-1a53 53 0 0 1-10-3l-4-1 2-16 8 4 8 1c4 0 5-1 6-2v-5l-3-1a351 351 0 0 1-12-2c-2 0-3-1-5-3l-3-5-1-5a19 19 0 0 1 7-15l8-5 8-1a61 61 0 0 1 13 2l4 1-2 16a50 50 0 0 0-12-2h-5l-3 1v4l2 2a36 36 0 0 0 9 0l6 1 4 4 3 3 1 6ZM116 76l-2 58-18-1 1-39-7 5-6-11v-5l13-8zM161 114l-2 9-5 7-7 4a33 33 0 0 1-28-5l2-16a30 30 0 0 0 7 4 31 31 0 0 0 8 1h3c2 0 3-1 3-2l1-3-3-2-4-2-3 1-3-1V99h6l3-1 3-2 1-3-1-2-2-2h-2a18 18 0 0 0-15 4l-3-15 8-4a30 30 0 0 1 18-1l8 4a18 18 0 0 1 6 15v3a15 15 0 0 1-5 7l3 2 2 3 1 3v4ZM215 82v5l-18 16 17 29-20 3-12-17-1 16-17 1 1-59 20 1-2 17 12-17z"/>
+            </g>
+
+            <!-- Boulder object (800 bytes) -->
+            <!-- <g id="boulder">
+              <path fill="#918B86" d="m18 520-9-23c-24-60 6-113 32-166l38-76c8-15 20-28 34-37l110-68L332 37c7-7 15-12 25-14l74-18c36-8 51-7 62 9 41 57 67 104 103 161l67 106c9 15 5 27 5 44-1 38 6 76 20 112 4 11 9 21 11 32 2 10-1 74-3 96-1 18-43 83-58 91-16 9-137 53-164 61s-143-19-204-28l-112-17c-32-5-64-1-82-34-22-38-41-78-58-118Z"/>
+              <path fill="#63696D" d="m158 672 112 17 71 12c-17-20-44-45-61-66-4-5-8-9-9-15-2-6 0-12 1-19 6-19 7-41 13-61-34 8-111 23-117 21-7-2-13-7-18-12A649 649 0 0 1 41 415v-17l12-90-12 23C15 384-15 437 9 497a969 969 0 0 0 67 141c18 32 50 29 82 34Z"/>
+              <path fill="#BAAB9F" d="M494 15c-8-9-23-7-38 7l-57 57c-4 3-5 8-5 13l6 116c0 4 2 7 4 10 20 24 91 137 112 137 20 0 56-81 75-80 3 0 19 1 35 6 15 4 21-16 18-31l-48-75c-36-57-62-103-102-160Z"/>
+              <path fill="#7C7D7C" d="M230 243c21-3 91-15 104-20 25-10 48-53 63-76 0 0 5 75 0 104-4 21-17 128-31 153l-81 136-120-120c-11-10-17-15-21-30-8-33-24-81-24-110s78-32 110-37ZM382 83c-8-10-10-24-7-36 2-10 23-29 30-36l-48 12c-10 2-18 7-25 14L223 150l159-67Z"/>
+              <path fill="#9E958E" d="M688 437c-11-27-17-55-19-84-36 25-56 57-114 65l-54 8c-18 5-35 19-63 22-20 1-70 0-62 11 7 11 52 34 63 43 16 12 30 27 43 43 7 8 17 27 29 33h10c5-1 10-5 14-9 43-38 92-70 144-94 5-3 11-6 14-11l2-9-7-18Z"/>
+              <path fill="#5A6367" d="m699 469-3-12c-1 4-4 8-9 12-14 11-69 28-130 81-40 35-40 40-49 78-14 63-36 86-40 90l6-1c27-8 148-52 164-61 15-8 57-74 58-91 2-22 5-86 3-96Z"/>
+            </g> -->
+
           </defs>
 
           <!-- Wobble effect that is applied to all of the terrain. -->
-          <filter id="wobble">
+          <!-- <filter id="wobble">
             <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="turbulence" />
             <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="5" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
+          </filter> -->
 
           <!-- Soil texture that is applied to the top soil layer to make it look more natual. -->
-          <filter id="soil-texture" primitiveUnits="userSpaceOnUse" x="0%" y="0%" width="100%" height="100%">
+          <!-- <filter id="soil" primitiveUnits="userSpaceOnUse" x="0%" y="0%" width="100%" height="100%">
             <feTurbulence id="soil-noise" type="fractalNoise" baseFrequency="0.01" numOctaves="3" />
             <feComponentTransfer>
               <feFuncR type="discrete" tableValues="0 0 1"/>
@@ -58,12 +187,12 @@
               <feFuncB type="discrete" tableValues="0 1"/>
             </feComponentTransfer>
             <feColorMatrix values="1 0 0 0 0 -1 1 0 0 0 -1 -1 1 0 0 0 0 0 0 1"/>
-            <feColorMatrix values="0.10 -0.10 0.10 0.00 0.50 0.10 -0.10 0.10 0.00 0.50 0.10 -0.10 0.10 0.00 0.50 0.00 0.00 0.00 0.00 1.00"/>
+            <feColorMatrix values=".1 -.1 .1 0 .5 .1 -.1 .1 0 .5 .1 -.1 .1 0 .5 0 0 0 0 1"/>
             <feComposite in="SourceGraphic" result="comp" operator="arithmetic" k1="1.7" />
-          </filter>
+          </filter> -->
 
           <!-- -->
-          <filter id="clouds">
+          <!-- <filter id="clouds">
             <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="5" />
             <feOffset dx="0" dy="0" id="clouds-offset" />
             <feComponentTransfer>
@@ -71,59 +200,86 @@
             </feComponentTransfer>
             <feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1 .4"/>
             <feBlend in2="SourceGraphic"/>
-          </filter>
+          </filter> -->
 
           <!-- Background sky layer. -->
-          <path id="sky" fill="url(#fill-sky)" filter="url(#clouds)" />
+          <path id="sky" fill="url(#fill-sky)" />
 
           <!-- All of the terrain and masks that are used to punch holes. -->
           <g>
-            <mask id="mask-background" mask-type="luminance" />
-            <mask id="mask-soil-dark" mask-type="luminance" />
-            <mask id="mask-soil-light" mask-type="luminance" />
-            <mask id="mask-grass-dark" mask-type="luminance" />
-            <mask id="mask-grass-light" mask-type="luminance" />
-            <path id="background" fill="url(#fill-background)" />
-            <path id="grass-dark" fill="#4ABE00" mask="url(#mask-grass-dark)" />
-            <path id="grass-light" fill="#8AE000" mask="url(#mask-grass-light)" />
-            <path id="soil-dark" fill="url(#fill-soil-dark)" mask="url(#mask-soil-dark)" />
-            <path id="soil-light" fill="url(#fill-soil-light)" mask="url(#mask-soil-light)" filter="url(#soil-texture)" />
-          </g>
+            <mask id="m0" mask-type="luminance" /><!-- Background -->
+            <mask id="m1" mask-type="luminance" /><!-- Grass Dark -->
+            <mask id="m2" mask-type="luminance" /><!-- Grass Light -->
+            <mask id="m3" mask-type="luminance" /><!-- Soil Dark -->
+            <mask id="m4" mask-type="luminance" /><!-- Soil light -->
 
-          <!-- Layer used to store all of the players. -->
-          <g id="players" />
+            <!-- Background water layers. -->
+            <rect id="w1" fill="url(#p-water)" x="0" height="100" />
+            <rect id="w2" fill="url(#p-water)" x="0" height="100" />
+            <rect id="w3" fill="url(#p-water)" x="0" height="100" />
+            
+            <!-- Terrain layers. -->
+            <path id="l0" fill="url(#f0)" mask="url(#m0)" />
+            <path id="l1" fill="#4ABE00" mask="url(#m1)" />
+            <path id="l2" fill="#8AE000" mask="url(#m2)" />
+            <path id="l3" fill="url(#f3)" mask="url(#m3)" />
+            <path id="l4" fill="url(#f4)" mask="url(#m4)" />
+            <path id="l5" fill="url(#p-soil)" mask="url(#m4)" />
+
+            <!-- Layer used to store all of the players. -->
+            <g id="players" />
+
+            <!-- Container for particle effects. -->
+            <g id="particles" />
+
+            <!-- Container for fired objects. -->
+            <g id="objects"></g>
+
+            <!-- Foreground water layers. -->
+            <rect id="w4" fill="url(#p-water)" x="0" height="100" />
+            <rect id="w5" fill="url(#p-water)" x="0" height="100" />
+            <rect id="w6" fill="url(#p-water)" x="0" height="100" />
+          </g>
           
           <!-- Crosshairs that show the direction the user is firing in. -->
           <g id="crosshairs">
-            <path d="M-12,0 L-5,0 M0,-12 L0,-5 M12,0 L5,0 M0,12 L0,5" stroke="#fff" stroke-width="2" stroke-linecap="round" />
+            <g transform="translate(-21, -21)">
+              <path fill="#FF418B" stroke="#000" stroke-width="2" d="M5.5 25a8 8 0 0 1-3.2-.5c-1.7-1.1-1.7-4.8 0-5.9.4-.3 1.4-.4 3-.4 1-6.4 5.8-11 12.8-12.7a8 8 0 0 1 .6-3.2c1-1.7 4.8-1.7 5.8 0 .4.4.5 1.3.5 2.7 6.4.9 10.3 5.5 11.1 13 1.8.1 3 .3 3.4.6 1.7 1.1 1.7 4.8 0 5.9-.5.3-1.7.4-3.6.4-1.3 6-5.3 10-11 11.2 0 1.8-.2 3-.6 3.4-1 1.7-4.7 1.7-5.8 0C18 39 18 38 18 36c-6.5-1.4-11-5.2-12.5-11ZM18.4 30c.2-1.9.4-3.1.7-3.6 1.1-1.7 4.1-1.7 5.2 0 .3.4.5 1.5.6 3 2.1-.9 3.8-2.5 4.5-4.7a9.2 9.2 0 0 1-3.1-.7c-1.7-1.1-1.7-4.1 0-5.2.5-.3 1.6-.5 3.5-.6-.6-3.5-2.3-5.4-5.2-5.8-.2 2-.4 3.4-.7 4-1.1 1.6-4.1 1.6-5.2 0-.3-.5-.5-1.6-.6-3.2-3.1 1-5 2.9-5.8 5.4 2 .2 3.4.5 4 .8 1.6 1.1 1.6 4 0 5.2-.6.3-1.8.5-3.7.6.8 2.5 2.6 4 5.8 4.8Z"/>
+            </g>
           </g>
 
           <!-- Powerbar that appears when the user is firing some weapons. -->
-          <g id="powerbar">
-            <rect x="0" y="-5" width="80" height="10" rx="2" fill="url(#fill-powerbar)" mask="url(#mask-powerbar)" />
+          <g id="pb">
+            <rect x="0" y="-5" width="80" height="10" rx="2" fill="url(#f-pb)" mask="url(#m-pb)" />
           </g>
 
           <!-- Mask that is applied to the powerbar to make it 'grow' without changing the gradient. -->
-          <mask id="mask-powerbar" mask-type="luminance">
-            <rect id="powerbar-power" x="0" y="-5" width="40" height="10" rx="2" fill="#fff" />
+          <mask id="m-pb" mask-type="luminance">
+            <rect id="pb-mask" x="0" y="-5" width="40" height="10" rx="2" fill="#fff" />
           </mask>
-
-          <!-- Random debugging stuff. -->
-          <path stroke="#f0f" stroke-width="4" stroke-linecap="round" id="debug" />
 
         </svg>
       </div>
     </div>
 
+    <!-- UI: Weapons -->
+    <div id="weapons"></div>
+
+    <!-- UI: Current weapon. -->
+    <div id="weaponLabel"></div>
+
+    <!-- UI: Wind direction indicator. -->
     <div id="wind">
       <div id="windleft"></div>
       <div id="windright"></div>
       <div id="winddiv"></div>
     </div>
-
-    <div id="weapon">Missile</div>
-
-    <div id="explosion" class="explosion"></div>
+    
+    <!-- Hidden game elements that are cloned as neeeded. -->
+    <div style="display:none">
+      <div id="glyph"></div>
+      <div id="hp"></div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>
