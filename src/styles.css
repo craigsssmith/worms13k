@@ -44,6 +44,7 @@ body {
   left: 50vw;
   top: 26px;
   transform: translate(-50%, -150px);
+  white-space: nowrap;
 }
 
 .weapon {

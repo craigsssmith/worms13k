@@ -16,7 +16,6 @@ const ID_POWERBAR_MASK = 'pb-mask';
 // Constants.
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
 const HALF_PI = Math.PI / 2;
-// const SEED = Math.random() * 100000;
 const WORLD_SIZE = 8000;
 const OCEAN_SIZE = 10000;
 const WORLD_SCALE = 0.00075;
@@ -25,8 +24,16 @@ const AIR_RESISTANCE = 0.002;
 const PLAYER_GRAVITY = 0.002;
 const MISSILE_GRAVITY = 0.001;
 
+// Sound effects.
+const SFX_EXPLOSION = [1.5,,50,.08,.18,.36,4,2.9,-5,,,,,1.2,20,.6,.16,.4,.12,,1689];
+const SFX_JUMP = [,,369,.02,.05,.09,1,1.5,2,157,,,,,,.1,,.72,,,926];
+const SFX_SHOOT = [,,109,.02,.19,.07,2,.8,10,45,,,,.1,18,.2,,.86,.09];
+
 // Noise function.
 const simplex = createNoise2D();
+
+// Time since the page load.
+let time = 0;
 
 // Viewport dimensions.
 const vw = innerWidth;
@@ -42,9 +49,6 @@ const glyph = docElemById('glyph')! as HTMLElement;
 // Keep track of the holes and tunnels in the terrain.
 const holes: Hole[] = [];
 
-// Initialise the svg size to match the viewport.
-const svg = initSvg();
-
 // Create the terrain layers.
 const heights: number[] = [];
 
@@ -53,10 +57,12 @@ let masks: HTMLElement[] = [];
 
 // Has the game started.
 let started = false;
+let timeout: NodeJS.Timeout | null = null;
 
 // Various player and UI element.
 const playersContainer = docElemById(ID_PLAYERS)!;
 const crosshairs = docElemById(ID_CROSSHAIRS)!;
+const targetlock = docElemById('targetlock')!;
 const powerbar = docElemById(ID_POWERBAR)!;
 const powerbarMask = docElemById(ID_POWERBAR_MASK)!;
 const windleft = docElemById('windleft')!;
@@ -120,10 +126,10 @@ addEventListener('keydown', (event) => {
   }
 
   switch (event.code) {
-    case 'ShiftLeft':
+    case 'KeyN':
       return activateNextPlayer();
-    case 'ShiftRight':
-      return activateNextTeam();
+    // case 'ShiftRight':
+    //   return activateNextTeam();
     case 'Space':
       return startGame();
   }
@@ -135,7 +141,7 @@ addEventListener('keyup', (event) => {
   keys.delete(event.key);
 });
 
-// Reload the 
+// Reload the game if the window resizes. It's a hack, but all I have time for right now.
 addEventListener('resize', () => {
   location.reload();
 });
@@ -143,10 +149,6 @@ addEventListener('resize', () => {
 // ================================================================================================
 // ======== GAME LOOP =============================================================================
 // ================================================================================================
-
-// Start the main game loop.
-let time = 0;
-requestAnimationFrame(tick);
 
 /**
  * Update the game state (and push render changes to the DOM).
@@ -162,7 +164,6 @@ function tick(t: number): void {
   updatePowerbar(delta);
   updateExplosions(delta);
   updateTracers(delta);
-  updateWeaponSelection();
   updateMissiles(delta);
   updateDynamites(delta);
   updateGrenades(delta);
@@ -174,6 +175,8 @@ function tick(t: number): void {
  * 
  */
 function initGame(): void {
+  initSvg();
+  requestAnimationFrame(tick);
   initTerrain(true);
   initWeaponsUI();
 }
@@ -417,23 +420,30 @@ function updateCrosshairs(delta: number) {
       const vertical = +keys.has('KeyS') - +keys.has('KeyW');
       p.aim = clamp(p.aim + (vertical * delta * 0.001), -HALF_PI, HALF_PI);
 
-      const [x, y] = rpos(p, 0, -10, 100);
+      const [x, y] = rpos(p, 0, -10, 150);
 
       transform(powerbar, p.x, p.y, [p.aim, 0, 0]);
-      showCrosshairs(x, y); 
+      showCrosshairs(false, x, y); 
     } else {
-      hideCrosshairs();
+      hideCrosshairs(false);
     }
   }
 }
 
-function showCrosshairs(x: number, y: number) {
-  transform(crosshairs, x, y);
-  crosshairs.style.visibility = 'visible';
+/**
+ * Show the crosshairs at a specific position. This could either be based on the player's position
+ * and aim direction, or at the mouse location (for air strikes).
+ */
+function showCrosshairs(lock: boolean, x: number, y: number) {
+  transform(lock ? targetlock : crosshairs, x, y);
+  (lock ? targetlock : crosshairs).style.visibility = 'visible';
 }
 
-function hideCrosshairs() {
-  crosshairs.style.visibility = 'hidden';
+/**
+ * Hide the crosshairs graphic.
+ */
+function hideCrosshairs(lock: boolean) {
+  (lock ? targetlock : crosshairs).style.visibility = 'hidden';
 }
 
 /**
@@ -464,7 +474,7 @@ function updatePowerbar(delta: number) {
       }
     }
 
-    const [x, y] = rpos(p, 0, -10, 10);
+    const [x, y] = rpos(p, 0, -10, 40);
     width = p.power * 80;
 
     const angle = p.dir === 1
@@ -521,6 +531,23 @@ function activateNextTeam() {
 }
 
 /**
+ * 
+ */
+function requestEndTurn() {
+  cancelEndTurn();
+  timeout = setTimeout(activateNextTeam, 4000);
+}
+
+/**
+ * 
+ */
+function cancelEndTurn() {
+  if (timeout) {
+    clearTimeout(timeout);
+  }
+}
+
+/**
  * Reset all play flags, so that they can fire again.
  */
 function resetPlayers() {
@@ -554,9 +581,7 @@ function killPlayer(p: Player, explode: boolean, immediately: boolean) {
     lockCamera(p);
 
     if (!immediately) {
-      setTimeout(() => {
-        activateNextTeam();
-      }, timeout);
+      requestEndTurn();
     }
   }, timeout);
 }
@@ -576,7 +601,7 @@ function updateExplosions(delta: number) {
 
     e.ttl -= delta;
     attrNS(e.el, 'opacity', e.ttl > 400 ? '1' : '' + (e.ttl / 400));
-    attrNS(e.el, 'r', '' + (e.r * (((500 - e.ttl) / 1000) + 1)));
+    attrNS(e.el, 'r', '' + (e.r * (((500 - e.ttl) / 600) + 1)));
 
     if (e.ttl <= 0) {
       e.el.remove();
@@ -588,26 +613,30 @@ function updateExplosions(delta: number) {
 /**
  * Add a new explosion effect.
  */
-function addExplosion(x: number, y: number, r: number) {
+function addExplosion(x: number, y: number, r: number, multicolor = false) {
   const el = docElemById('explosion')!.cloneNode(true) as Element;
+  const fill = multicolor ? `hsl(${rng(0, 360)}, 100%, 50%)` : '#fff';
+  const ttl = multicolor ? 1000 : 500;
 
   attrNS(el, 'cx', '' + x);
   attrNS(el, 'cy', '' + y);
   attrNS(el, 'r', '' + r);
 
+  attrNS(el, 'fill', fill);
+
   particles.append(el);
 
-  explosions.push({ x, y, r, el, ttl: 500 });
+  explosions.push({ x, y, r, el, ttl });
 }
 
 /**
  * 
  */
-function addSmoke(x: number, y: number) {
+function addSmoke(x: number, y: number, multicolor = false) {
   for (let i = 0; i < 5; i++) {
     const a = Math.PI * 0.4 * i;
     const d = Math.random() * 5 + 5;
-    addExplosion(x + Math.sin(a) * d, y + Math.cos(a) * d, rng(6, 9));
+    addExplosion(x + Math.sin(a) * d, y + Math.cos(a) * d, rng(6, 9), multicolor);
   }
 }
 
@@ -627,6 +656,7 @@ function initWeaponsUI() {
     el.addEventListener('mousedown', function() {
       activeWeapon = i;
       updateWeaponUI();
+      hideCrosshairs(false);
     });
 
     weapons.append(el);
@@ -647,25 +677,11 @@ function updateWeaponUI() {
 }
 
 /**
- * Update the UI, showing which weapon is selected.
- */
-function updateWeaponSelection() {
-  for (const weapon of WEAPONS) {
-    if (keys.has(weapon.key)) {
-      activeWeapon = weapon.id;
-      updateWeaponUI();
-      hideCrosshairs();
-      break;
-    }
-  }
-}
-
-/**
  * Fire the active weapon.
  */
 function fireWeapon() {
   switch (activeWeapon) {
-    case 0: return fireBazooka();
+    case 0: return fireMissile();
     case 1: return fireShotgun();
     case 2: return fireUzi();
     case 3: return fireAirStrike();
@@ -673,11 +689,15 @@ function fireWeapon() {
     case 5: return fireGrenade();
     case 6: return fireHolyHandGrenade();
     case 7: return fireMinigun();
+    case 8: return fireHomingMissile();
+    case 9: return fireClusterBomb();
+    case 10: return fireNyanCats();
+    case 11: return fireCricketBat();
   }
 }
 
 // ================================================================================================
-// ======== WEAPON: BAZOOKA =======================================================================
+// ======== WEAPON: MISSILES ======================================================================
 // ================================================================================================
 
 /**
@@ -689,35 +709,51 @@ function updateMissiles(delta: number) {
 
   while (i--) {
     const m = missiles[i];
+    m.ttl = (m.ttl || 0) + delta;
     m.dt = (m.dt || 0) + delta;
 
     if (m.dt >= 30) {
       m.dt -= 30;
-      addSmoke(m.x, m.y);
+      addSmoke(m.x, m.y, m.nyan);
     }
 
-    // Apply gravity.
-    m.dy += delta * MISSILE_GRAVITY;
+    // Non-homing missiles (and homing missiles for the first 500ms).
+    if (m.ttl < 500 || !m.tx || !m.ty ) {
+      // Apply gravity.
+      if (m.grav) {
+        m.dy += delta * MISSILE_GRAVITY;
+      }
 
-    // Apply air resistance.
-    m.dx *= 1 - AIR_RESISTANCE;
-    m.dy *= 1 - AIR_RESISTANCE;
+      // Apply air resistance.
+      if (m.grav) {
+        m.dx *= 1 - AIR_RESISTANCE;
+        m.dy *= 1 - AIR_RESISTANCE;
+      }
 
-    // Apply wind factor.
-    if (m.wind) {
-      m.dx += windSpeed * 0.015;
+      // Apply wind factor.
+      if (m.wind) {
+        m.dx += windSpeed * 0.015;
+      }
     }
 
+    // Homing missiles locked on to their target.
+    if (m.ttl > 500 && m.tx && m.ty) {
+      const mag = magnitude([m.dx, m.dy]);
+      const [nx, ny] = multiply(normalize([m.tx - m.x, m.ty - m.y]), mag * 1.02);
+      const [dx, dy] = normalize([lerp(m.dx, nx, 0.05), lerp(m.dy, ny, 0.05)]);
+      const mag2 = magnitude([dx, dy]);
+      m.dx = dx * mag2;
+      m.dy = dy * mag2;
+    }
+    
     // Update the position.
     m.x += m.dx * delta;
     m.y += m.dy * delta;
 
-    // Angle of movement.
-    const angle = Math.atan2(m.dy, m.dx) * 180 / Math.PI;
-
     // Render the changes into the DOM.
     if (m.el) {
-      transform(m.el, m.x, m.y, [angle, 0, 0]);
+      const angle = m.nyan ? 0 : Math.atan2(m.dy, m.dx);
+      transform(m.el, m.x, m.y, [angle * 180 / Math.PI, 0, 0]);
     }
 
     // Check for collisions.
@@ -742,12 +778,8 @@ function explodeMissile(i: number) {
   missiles.splice(i, 1);
 
   if (missiles.length === 0) {
-    hideCrosshairs();
-
-    setTimeout(() => {
-      activateNextTeam();
-      unlockCamera();
-    }, 2000);
+    hideCrosshairs(true);
+    requestEndTurn();
   }
 }
 
@@ -755,25 +787,63 @@ function explodeMissile(i: number) {
  * Launch a missile from the player's position, in the direction they are aiming, and with the
  * correct amount of power based on how long they held down the power button.
  */
-function fireBazooka() {
-  const player = players[activePlayer];
+function fireMissile() {
+  const p = players[activePlayer];
 
   const el = docElemById('missile')!.cloneNode(true) as Element;
   objects.appendChild(el);
 
-  const dx = Math.cos(player.aim) * player.power * 2 * player.dir;
-  const dy = Math.sin(player.aim) * player.power * 2;
+  const dx = Math.cos(p.aim) * p.power * 2 * p.dir;
+  const dy = Math.sin(p.aim) * p.power * 2;
 
-  const x = player.x + (dx * 10);
-  const y = player.y - 10 + (dy * 10);
+  const x = p.x + (dx * 10);
+  const y = p.y - 10 + (dy * 10);
 
   const power = rng(60, 70);
 
-  const missile: Missile = { x, y, dx, dy, power, el, wind: true };
+  const missile: Missile = { x, y, dx, dy, power, el, wind: true, grav: true };
   missiles.push(missile);
   lockCamera(missile);
 
   sfx(SFX_SHOOT);
+
+  cancelEndTurn();
+}
+
+/**
+ * 
+ */
+function fireHomingMissile() {
+  const p = players[activePlayer];
+
+  if (p.power === 0) {
+    // Phase 1, set a target.
+    p.tx = mouse.x + camera.x - vw / 2;
+    p.ty = mouse.y;
+
+    showCrosshairs(true, p.tx, p.ty);
+
+  } else if (p.tx && p.ty) {
+    // Phase 2, fire the missile.
+    const el = docElemById('homing')!.cloneNode(true) as Element;
+    objects.appendChild(el);
+
+    const dx = Math.cos(p.aim) * p.power * 2 * p.dir;
+    const dy = Math.sin(p.aim) * p.power * 2;
+
+    const x = p.x + (dx * 10);
+    const y = p.y - 10 + (dy * 10);
+
+    const power = rng(60, 70);
+
+    const missile: Missile = { x, y, dx, dy, power, el, tx: p.tx, ty: p.ty };
+    missiles.push(missile);
+    lockCamera(missile);
+
+    p.tx = p.ty = undefined;
+
+    cancelEndTurn();
+  }
 }
 
 /**
@@ -787,7 +857,7 @@ async function fireAirStrike() {
   const dx = 0.2 * dir;
 
   lockCamera({ x, y: 0 });
-  showCrosshairs(x, mouse.y);
+  showCrosshairs(true, x, mouse.y);
 
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
@@ -810,8 +880,10 @@ async function fireAirStrikeRound(x: number, dx: number): Promise<void> {
     const power = rng(55, 65);
     
     setTimeout(() => {
-      const missile: Missile = { x, y: -50, dx, dy, power, el, wind: false };
+      const missile: Missile = { x, y: -50, dx, dy, power, el, wind: false, grav: true };
       missiles.push(missile);
+
+      cancelEndTurn();
       resolve();
     }, 150);
   });
@@ -820,12 +892,52 @@ async function fireAirStrikeRound(x: number, dx: number): Promise<void> {
 /**
  * 
  */
+async function fireNyanCats() {
+  const x = mouse.x + camera.x - vw / 2;
+  const y = mouse.y;
+
+  lockCamera({ x, y: 0 });
+  showCrosshairs(true, x, y);
+
+  setTimeout(async () => {
+    for (let i = 0; i < 5; i++) {
+      const angle = Math.PI / 2 + (Math.random() * 0.5 - 0.25);
+      const dx = Math.cos(angle) * 0.2;
+      const dy = Math.sin(angle) * 0.2;
+
+      await fireNyanCat(x - dx * 100, -20, dx, dy);
+    }
+  }, 1000);
+}
+
+/**
+ * 
+ */
+async function fireNyanCat(x: number, y: number, dx: number, dy: number): Promise<void> {
+  return new Promise((resolve) => {
+    const el = docElemById('nyancat')!.cloneNode(true) as Element;
+    objects.appendChild(el);
+
+    setTimeout(() => {
+      const missile: Missile = { x, y, dx, dy, power: rng(75, 90), el, wind: false, grav: false, nyan: true };
+      missiles.push(missile);
+
+      cancelEndTurn();
+      resolve();
+    }, 1250);
+  });
+}
+
+/**
+ * 
+ */
 function fireCharge(x: number, y: number, dx: number, dy: number, power: number) {
-  missiles.push({ x, y, dx, dy, power, wind: false });
+  missiles.push({ x, y, dx, dy, power, wind: false, grav: true });
+  cancelEndTurn();
 }
 
 // ================================================================================================
-// ======== WEAPON: SHOTGUN + UZI =================================================================
+// ======== WEAPON: GUNS ==========================================================================
 // ================================================================================================
 
 /**
@@ -896,10 +1008,7 @@ async function fireGun(rounds: number, power: [number, number], spread: number, 
     await fireRound(x, y, angle, power, spread, delay, i === 0);
   }
 
-  setTimeout(() => {
-    activateNextTeam();
-    unlockCamera();
-  }, 2000);
+  requestEndTurn();
 }
 
 /**
@@ -973,6 +1082,8 @@ function placeDynamite() {
 
   const d: Dynamite = { x, y, el, ttl: 5000 };
   dynamites.push(d);
+
+  cancelEndTurn();
 }
 
 /**
@@ -987,11 +1098,11 @@ function explodeDynamite(i: number) {
   d.el.remove();
   dynamites.splice(i, 1);
 
-  setTimeout(activateNextTeam, 2000);
+  requestEndTurn();
 }
 
 // ================================================================================================
-// ======== WEAPON: DYNAMITE ======================================================================
+// ======== WEAPON: GRENADES ======================================================================
 // ================================================================================================
 
 /**
@@ -1066,10 +1177,10 @@ function updateGrenades(delta: number) {
 /**
  * 
  */
-function fireGrenade(holy = false) {
+function fireGrenade(holy = false, cluster = false) {
   const p = players[activePlayer];
 
-  const id = holy ? 'holy' : 'grenade';
+  const id = holy ? 'holy' : cluster ? 'clusterbomb' : 'grenade';
   const el = docElemById(id)!.cloneNode(true) as Element;
   objects.appendChild(el);
 
@@ -1083,17 +1194,25 @@ function fireGrenade(holy = false) {
 
   transform(el, x, y);
 
-  const g: Grenade = { x, y, dx, dy, el, holy, power, ttl: 5000 };
+  const g: Grenade = { x, y, dx, dy, el, holy, cluster, power, ttl: 5000 };
   grenades.push(g);
 
   lockCamera(g);
+  cancelEndTurn();
 }
 
 /**
  * 
  */
 function fireHolyHandGrenade() {
-  fireGrenade(true);
+  fireGrenade(true, false);
+}
+
+/**
+ * 
+ */
+function fireClusterBomb() {
+  fireGrenade(false, true);
 }
 
 /**
@@ -1108,13 +1227,52 @@ function explodeGrenade(i: number) {
   g.el.remove();
   grenades.splice(i, 1);
 
-  if (g.holy) {
-    for (let i = 0; i < 10; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      fireCharge(g.x, g.y, Math.sin(angle) / 2, Math.cos(angle) / 1.2, rng(70, 90));
+  const clusters = g.holy ? 10 : g.cluster ? 5 : 0;
+  const power = g.holy ? rng(70, 90) : g.cluster ? rng(30, 40) : 0;
+
+  requestEndTurn();
+
+  for (let i = 0; i < clusters; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dx = Math.sin(angle) * 0.25;
+    const dy = Math.cos(angle) * 0.25 - 0.5;
+    fireCharge(g.x, g.y, dx, dy, power);
+  }
+}
+
+// ================================================================================================
+// ======== MELEE WEAPONS =========================================================================
+// ================================================================================================
+
+/**
+ * 
+ */
+function fireCricketBat() {
+  const p1 = players[activePlayer];
+
+  for (let i = 0; i < players.length; i++) {
+    const p2 = players[i];
+
+    if (p1.i === p2.i || p2.dead) {
+      continue;
     }
-  } else {
-    setTimeout(activateNextTeam, 2000);
+
+    const d2 = sqdist(p1.x, p1.y, p2.x, p2.y);
+
+    if (d2 < 2000) {
+      const angle = p1.aim;
+      const force = 1;
+
+      p2.ragdoll = true;
+      p2.dx = Math.cos(angle) * force * p1.dir;
+      p2.dy = Math.sin(angle) * force;
+      p2.vr = Math.max(20, force * 20 * p2.dir);
+      p2.hp -= 15;
+
+      updatePlayerHealth(p2);
+      lockCamera(p2);
+      requestEndTurn();
+    }
   }
 }
 
@@ -1150,7 +1308,12 @@ function updateCamera(delta: number) {
     camera.to.x = clamp(camera.to.x, min, max);
   }
 
-  camera.x = lerp(camera.x, clamp(camera.to.x, min, max), 0.0075 * delta);
+  const target = clamp(camera.to.x, min, max);
+  camera.x = lerp(camera.x, target, 0.0075 * delta);
+  if (Math.abs(camera.x - target) < 0.1) {
+    camera.x = target;
+  }
+
   camera.ttl = Math.max(camera.ttl - delta, 0);
 
   const base = 0 - clamp(camera.x, min, max) + (vw / 2);
@@ -1503,7 +1666,10 @@ function addBlast(x: number, y: number, r: number, kb: number, ignorePlayer?: nu
  * Add holes through all layers of the terrain.
  */
 function addHoles(x: number, y: number, r: number) {
-  addHole(masks[0], x, y, Math.max(0, r - 20));
+  if (r > 50) {
+    addHole(masks[0], x, y, r - 20);
+  }
+
   addHole(masks[1], x, y, r);
   addHole(masks[2], x, y, r + 10);
   addHole(masks[3], x, y, r);
@@ -1601,36 +1767,60 @@ function rpos(p: Player, ox: number, oy: number, dist: number): [number, number]
 // ======== VECTORS ===============================================================================
 // ================================================================================================
 
+/**
+ * Reflect one vector around the normal of another vector, for bounces.
+ */
 function reflect(v: Vector, n: Vector): Vector {
   const nn = normalize(n);
   return subtract(v, multiply(nn, 2 * dot(v, nn)));
 }
 
+/**
+ * Get the magnitude of a vector.
+ */
 function magnitude(v: Vector): number {
   return Math.sqrt(v[0] * v[0] + v[1] * v[1]);
 }
 
+/**
+ * Normalize a vector, giving it a length of 1.
+ */
 function normalize(v: Vector): Vector {
   const l = magnitude(v);
   return l === 0 ? v : [v[0] / l, v[1] / l];
 }
 
+/**
+ * Find the difference between two vectors.
+ */
 function subtract(v1: Vector, v2: Vector): Vector {
   return [v1[0] - v2[0], v1[1] - v2[1]];
 }
 
+/**
+ * Multiply a vector, increasing (or decreasing) its length.
+ */
 function multiply(v1: Vector, i: number): Vector {
   return [v1[0] * i, v1[1] * i];
 }
 
+/**
+ * Find the dot-product of two vectors.
+ */
 function dot(v1: Vector, v2: Vector): number {
   return (v1[0] * v2[0]) + (v1[1] * v2[1]);
 }
 
+/**
+ * Invert a vector.
+ */
 function invert(v: Vector): Vector {
   return [-v[0], -v[1]];
 }
 
+/**
+ * Find the perpendicular vector for the given vector.
+ */
 function perpendicular(v: Vector): Vector {
   return [-v[1], v[0]];
 }
@@ -1671,6 +1861,9 @@ function transform(el: Element, x: number, y: number, angle: [number, number, nu
 // ======== BITMAP TEXT ===========================================================================
 // ================================================================================================
 
+/**
+ * Draw some bitmap text inside of the given element.
+ */
 function text(el: Element, str: string) {
   el.innerHTML = '';
   
@@ -1685,10 +1878,9 @@ function text(el: Element, str: string) {
 // ======== SOUND EFFECTS =========================================================================
 // ================================================================================================
 
-const SFX_EXPLOSION = [1.5,,50,.08,.18,.36,4,2.9,-5,,,,,1.2,20,.6,.16,.4,.12,,1689];
-const SFX_JUMP = [,,369,.02,.05,.09,1,1.5,2,157,,,,,,.1,,.72,,,926];
-const SFX_SHOOT = [,,109,.02,.19,.07,2,.8,10,45,,,,.1,18,.2,,.86,.09];
-
+/**
+ * Play a sound effect.
+ */
 function sfx(params: any[]) {
   zzfx(...params);
 }

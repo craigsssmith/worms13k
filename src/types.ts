@@ -29,10 +29,15 @@ export type Tracer = {
 export type Missile = Position & {
   dx: number;
   dy: number;
+  tx?: number;
+  ty?: number;
   power: number
   el?: Element;
   wind?: boolean;
   dt?: number;
+  ttl?: number;
+  grav?: boolean;
+  nyan?: boolean;
 };
 
 export type Dynamite = Position & {
@@ -46,6 +51,7 @@ export type Grenade = Position & {
   ttl: number;
   el: Element;
   holy: boolean;
+  cluster: boolean;
   power: number;
 };
 
@@ -70,6 +76,8 @@ export type Player = Position & {
   anim?: number;
   adt?: number;
   frame?: number;
+  tx?: number;
+  ty?: number;
 };
 
 export type Raycast = Position & {
@@ -86,7 +94,7 @@ export type Camera = {
 
 export type WeaponConfig = {
   id: number;
-  key: string;
+  // key: string;
   label: string;
   icon: string;
   power?: boolean;

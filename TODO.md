@@ -2,9 +2,9 @@
 
 ### Required
 
-- Proper player collisions
-- Bug: correctly switch teams at end of turn
-- Game over screen
+- Fix collisions
+- End game screen
+- Cats?
 
 ### Should have
 
@@ -19,9 +19,7 @@
 
 - Game mechanics
   - New weapons
-    - Homing missile
-    - Cluster grenade
-    - Prod
+    - Cricket bat
   - Weapon improvements
     - Better grenade collisions
   - Crates (weapon drops)
@@ -29,8 +27,6 @@
   - Auto show/hide health labels
   - Player names (auto generated)
   - Hide menu when player is overlapping them.
-- Eye candy
-  - Smoke puffs when things bounce
 - Others
   - Level select screen 
   - Terrain objects

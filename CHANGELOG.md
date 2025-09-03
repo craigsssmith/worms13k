@@ -1,14 +1,26 @@
+## Day 21 (3rd September)
+
+- New weapon: Homing missiles!
+- New weapon: Cluster bomb!
+- New weapon: Nyan cats!
+- New weapon: Cricket bat!
+- Better positioning of crosshairs and power meter.
+- Better carving of holes in the background layer.
+- Correctly move to the next team at the end of turn.
+
+> 10836 bytes (81.4%)
+
 ## Day 20 (2nd September)
 
 - Added custom mouse pointer!
 - Added mouse scrolling.
 - Added better crosshairs graphics.
-- Show crosshairs for air strikes.
+- Show target crosshairs for air strikes.
 - Check for missile collisions dirctly with players, not just terrain.
 - Switched to official js13k vite plugin.
 - Enabled roadroller.
 
-> 10018 bytes (75.3%)
+> 9998 bytes (75.1%)
 
 ## Day 19 (1st September)
 
