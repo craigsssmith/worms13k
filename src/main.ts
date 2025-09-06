@@ -1,5 +1,5 @@
 import { createNoise2D } from './noise';
-import type { Camera, Dynamite, Explosion, Grenade, Hole, Missile, Player, Position, Raycast, Tracer, Tunnel, Vector } from './types';
+import type { Camera, Dynamite, Elements, Explosion, Grenade, Hole, Missile, Player, Position, Raycast, Tracer, Tunnel, Vector } from './types';
 import { ANIMATIONS, WEAPONS } from './data';
 import { zzfx } from './zzfx';
 import './styles.css';
@@ -14,7 +14,8 @@ const ID_POWERBAR = 'pb';
 const ID_POWERBAR_MASK = 'pb-mask';
 
 // Constants.
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+const NAMES = 'ALICE|CLIVE|BORIS|RICHARD|MIKE|SARAH|PAULINE|HENRY'.split('|');
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \'!';
 const HALF_PI = Math.PI / 2;
 const WORLD_SIZE = 8000;
 const OCEAN_SIZE = 10000;
@@ -30,7 +31,8 @@ const SFX_JUMP = [,,369,.02,.05,.09,1,1.5,2,157,,,,,,.1,,.72,,,926];
 const SFX_SHOOT = [,,109,.02,.19,.07,2,.8,10,45,,,,.1,18,.2,,.86,.09];
 
 // Noise function.
-const simplex = createNoise2D();
+const rngf = splitmix32((Math.random() * 2 ** 32) >>> 0);
+const simplex = createNoise2D(rngf);
 
 // Time since the page load.
 let time = 0;
@@ -50,13 +52,14 @@ const glyph = docElemById('glyph')! as HTMLElement;
 const holes: Hole[] = [];
 
 // Create the terrain layers.
-const heights: number[] = [];
+let heights: number[] = [];
 
 // Mask layers, for terrain destruction.
 let masks: HTMLElement[] = [];
 
 // Has the game started.
 let started = false;
+let master = false;
 let timeout: NodeJS.Timeout | null = null;
 
 // Various player and UI element.
@@ -70,9 +73,10 @@ const windright = docElemById('windright')!;
 const weaponLabel = docElemById('weaponLabel')!;
 const weapons = docElemById('weapons')!;
 const objects = docElemById('objects')!;
+const captions = docElemById('msg')!;
 
 // Create a series of players, 4 for each team.
-const players: Player[] = [];
+let players: Player[] = [];
 let activePlayer = 0;
 let activeTeam = 0;
 let activeWeapon = 0;
@@ -81,19 +85,23 @@ let activeWeapon = 0;
 let windSpeed = 0;
 
 // Various game objects.
-const explosions: Explosion[] = [];
-const missiles: Missile[] = [];
-const tracers: Tracer[] = [];
-const dynamites: Dynamite[] = [];
-const grenades: Grenade[] = [];
+let explosions: Explosion[] = [];
+let missiles: Map<number, Missile> = new Map();
+let grenades: Map<number, Grenade> = new Map();
+let dynamites: Map<number, Dynamite> = new Map();
+let tracers: Tracer[] = [];
 
 // Camera position, and object that it's locked to.
-const camera: Camera = {
+let camera: Camera = {
   x: 0,
   to: { x: 0, y: 0 },
   free: false,
   ttl: 0,
 };
+
+// DOM elements for game entities.
+let destroyed: number[] = [];
+let elements: Element[] = [];
 
 // Initialise everything required for the title screen.
 setTimeout(initGame);
@@ -103,7 +111,7 @@ setTimeout(initGame);
 // ================================================================================================
 
 const keys = new Set<string>();
-const mouse = { x: 0, y: 0 };
+const mouse = { x: 0, y: 0, over: false };
 
 // Keep track of the mouse position.
 addEventListener('mousemove', (event) => {
@@ -113,10 +121,10 @@ addEventListener('mousemove', (event) => {
 
 // Fire targeted weapons on mouse click.
 addEventListener('mousedown', (event) => {
-  if (WEAPONS[activeWeapon].target && event.clientY > 100) {
+  if (master && WEAPONS[activeWeapon].target && event.clientY > 100) {
     fireWeapon();
   }
-})
+});
 
 // Keep track of which keyboard buttons are pressed.
 addEventListener('keydown', (event) => {
@@ -128,10 +136,12 @@ addEventListener('keydown', (event) => {
   switch (event.code) {
     case 'KeyN':
       return activateNextPlayer();
-    // case 'ShiftRight':
-    //   return activateNextTeam();
     case 'Space':
       return startGame();
+    case 'KeyK':
+      return startMultiplayerGame();
+    case 'KeyJ':
+      return joinMultiplayerGame();
   }
 });
 
@@ -146,6 +156,16 @@ addEventListener('resize', () => {
   location.reload();
 });
 
+//
+document.body.addEventListener('mouseenter', () => {
+  mouse.over = true;
+});
+
+//
+document.body.addEventListener('mouseleave', () => {
+  mouse.over = false;
+});
+
 // ================================================================================================
 // ======== GAME LOOP =============================================================================
 // ================================================================================================
@@ -153,7 +173,7 @@ addEventListener('resize', () => {
 /**
  * Update the game state (and push render changes to the DOM).
  */
-function tick(t: number): void {
+function tick(t: number) {
   requestAnimationFrame(tick);
 
   const delta = t - time;
@@ -169,12 +189,15 @@ function tick(t: number): void {
   updateGrenades(delta);
   updateCamera(delta);
   updateWind();
+  updateDestroyedElement();
+  updateStateSync(delta);
+  updateCaptions(delta);
 }
 
 /**
  * 
  */
-function initGame(): void {
+function initGame() {
   initSvg();
   requestAnimationFrame(tick);
   initTerrain(true);
@@ -184,7 +207,7 @@ function initGame(): void {
 /**
  * 
  */
-function startGame(): void {
+function startGame() {
   if (!started) {
     initHeights();
     initTerrain(false);
@@ -192,6 +215,36 @@ function startGame(): void {
     unlockCamera();
     document.body.classList.add('started');
     started = true;
+    master = true;
+  }
+}
+
+/**
+ * 
+ */
+function startMultiplayerGame() {
+  socketInit();
+  startGame();
+}
+
+/**
+ * 
+ */
+function joinMultiplayerGame() {
+  socketInit();
+  socketActionJoin();
+}
+
+/**
+ * Join a game started by someone else.
+ */
+function joinGame() {
+  if (!started) {
+    initTerrain(false);
+    unlockCamera();
+    document.body.classList.add('started');
+    started = true;
+    master = false;
   }
 }
 
@@ -227,6 +280,7 @@ function initPlayers() {
     const p = initPlayer(i);
     players.push(p);
     updatePlayerHealth(p);
+    text(getPlayerNameElement(p), NAMES[i]);
   }
 }
 
@@ -245,14 +299,32 @@ function initPlayer(i: number): Player {
   const y = getTerrainHeight(x);
   const dir = Math.random() > 0.5 ? 1 : -1;
 
-  const el1 = docElemById('player')!.cloneNode(true) as Element;
-  playersContainer.appendChild(el1);
+  return { id: getId(), i, x, y, hp: 100, dx: 0, dy: 0, ix: 0, jumping: false, r: 0, vr: 0, aim: 0, dir, power: 0, team: i % 2, anim: 0 };
+}
 
-  const el2 = docElemById('hp')!.cloneNode(true) as HTMLElement;
-  el2.style.setProperty('--c', i % 2 === 0 ? '#f0f' : '#0ff');
-  world.append(el2);
+/**
+ * 
+ */
+function getPlayerElement(p: Player) {
+  return getElement(playersContainer, 'player', p.id);
+}
 
-  return { i, x, y, hp: 100, dx: 0, dy: 0, r: 0, vr: 0, aim: 0, dir, power: 0, team: i % 2, el1, el2, anim: 0 };
+/**
+ * 
+ */
+function getPlayerHealthElement(p: Player) {
+  return getElement(world, 'hp', p.id + 1, (el: HTMLElement) => {
+    el.style.setProperty('--c', p.team === 0 ? '#f0f' : '#0ff')
+  });
+}
+
+/**
+ * 
+ */
+function getPlayerNameElement(p: Player) {
+  return getElement(world, 'hp', p.id + 2, (el: HTMLElement) => {
+    el.style.setProperty('--c', p.team === 0 ? '#f0f' : '#0ff')
+  });
 }
 
 /**
@@ -260,8 +332,6 @@ function initPlayer(i: number): Player {
  * For the active player, use the keyboard input to move the player too.
  */
 function updatePlayers(delta: number) {
-  let i = players.length;
-
   for (let i = 0; i < players.length; i++) {
     updatePlayer(players[i], i === activePlayer, delta);
   }
@@ -272,94 +342,109 @@ function updatePlayers(delta: number) {
  * user inputs, such as the arrow keys being pressed, but only if the player if the active one.
  */
 function updatePlayer(p: Player, active: boolean, delta: number) {
+  const el1 = getPlayerElement(p);
+  const el2 = getPlayerHealthElement(p) as HTMLElement;
+  const el3 = getPlayerNameElement(p) as HTMLElement;
+
   if (!p.gone) {
-    // Keyboard input.
-    const horizontal = active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
-    const jumping = active ? keys.has('Space') && p.onGround : false;
+    // const horizontal = master && active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
+    // const jumping = master && active ? keys.has('Space') && p.onGround : false;
 
-    p.r = active && keys.has('KeyJ') ? 1 : 0;
+    if (master) {
 
-    // Update the velocity.
-    p.dx = p.dx + (p.onGround ? horizontal * 0.1 : 0);
-    p.dy = p.dy + (jumping ? -0.5 : 0);
+      // Keyboard input.
+      p.ix = active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
+      p.jumping = !!(active ? keys.has('Space') && p.onGround : false);
 
-    // Prevent the player from picking up too much speed when walking.
-    if (p.onGround && !p.ragdoll) {
-      p.dx = clamp(p.dx, -0.125, 0.125);
-    }
+      // Update the velocity.
+      p.dx = p.dx + (p.onGround ? p.ix * 0.1 : 0);
+      p.dy = p.dy + (p.jumping ? -0.5 : 0);
 
-    // Boost the player forwards when they jump.
-    if (jumping) {
-      p.dx += horizontal * 0.1;
-    }
-
-    // Apply ground friction.
-    if (!jumping && p.onGround) {
-      p.dx *= 0.5;
-    }
-
-    // Play a jumping sound effect.
-    if (jumping && p.onGround) {
-      // console.log(zzfx);
-      sfx(SFX_JUMP);
-    }
-
-    // Apply gravity.
-    p.dy += delta * PLAYER_GRAVITY;
-
-    // Update the position.
-    p.x += p.dx * delta;
-    p.y += p.dy * delta;
-
-    // Reduce the angular velocity;
-    p.vr = lerp(p.vr, 0, 0.01);
-    p.r += p.vr * delta;
-
-    // Align the player the correct way each time they bounce.
-    if (p.onGround) {
-      p.r = 0;
-    }
-
-    // Prevent micro-rotations.
-    if (p.vr < 1) {
-      p.vr = 0;
-    }
-
-    // Set the players direction based on the input.
-    p.dir = horizontal === 0 ? p.dir : horizontal > 0 ? 1 : -1;
-
-    // Check for collisions, and adjust the player as necessary.
-    if (checkCollision(p.x, p.y)) {
-      const [dist] = raycastUp(p.x, p.y);
-
-      if (dist !== Infinity && dist > 0) {
-        p.y -= dist;
-        p.onGround = true;
-
-        // The player should bounce when they have been blasted, rather than jumping.
-        if (p.ragdoll) {
-          p.dy = 0 - (p.dy * 0.5);
-        } else {
-          p.dy = 0;
-        }
+      // Prevent the player from picking up too much speed when walking.
+      if (p.onGround && !p.ragdoll) {
+        p.dx = clamp(p.dx, -0.125, 0.125);
       }
-    } else {
-      p.onGround = false;
-    }
 
-    // If the player falls into the ocean, mark them as dead and gone immediately.
-    if (p.y >= vh - 100) {
-      killPlayer(p, false, true);
+      // Boost the player forwards when they jump.
+      if (p.jumping) {
+        p.dx += p.ix * 0.1;
+      }
+
+      // Apply ground friction.
+      if (!p.jumping && p.onGround) {
+        p.dx *= 0.5;
+      }
+
+      // Play a jumping sound effect.
+      if (p.jumping && p.onGround) {
+        sfx(SFX_JUMP);
+      }
+
+      // Apply gravity.
+      p.dy += delta * PLAYER_GRAVITY;
+
+      // Update the position.
+      p.x += p.dx * delta;
+      p.y += p.dy * delta;
+
+      // Reduce the angular velocity;
+      p.vr = lerp(p.vr, 0, 0.01);
+      p.r += p.vr * delta;
+
+      // Align the player the correct way each time they bounce.
+      if (p.onGround) {
+        p.r = 0;
+      }
+
+      // Prevent micro-rotations.
+      if (p.vr < 1) {
+        p.vr = 0;
+      }
+
+      // Set the players direction based on the input.
+      p.dir = p.ix === 0 ? p.dir : p.ix > 0 ? 1 : -1;
+
+      // Snap velocity to zero when it's very close.
+      if (Math.abs(p.dx) < 0.01) {
+        p.dx = 0;
+      }
+
+      // Check for collisions, and adjust the player as necessary.
+      if (checkCollision(p.x, p.y)) {
+        const [dist] = raycastUp(p.x, p.y);
+
+        if (dist !== Infinity && dist > 0) {
+          p.y -= dist;
+          p.onGround = true;
+
+          // The player should bounce when they have been blasted, rather than jumping.
+          if (p.ragdoll) {
+            p.dy = 0 - (p.dy * 0.5);
+          } else {
+            p.dy = 0;
+          }
+        }
+      } else {
+        p.onGround = false;
+      }
+
+      // If the player falls into the ocean, mark them as dead and gone immediately.
+      if (master && p.y >= vh - 100) {
+        killPlayer(p, false, true);
+      }
+
+      // Send the player data to connected clients.
+      socketActionSyncPlayer(p);
     }
 
     // Render the changes into the DOM.
     const scale = 0.75;
     const x = p.x - (p.dir * 32 * scale);
     const sx = p.dir * scale;
-    transform(p.el1, x, p.y - 60 * scale, [p.r, 32 * sx, 32 * scale], [sx, scale]);
+    transform(el1, x, p.y - 60 * scale, [p.r, 32 * sx, 32 * scale], [sx, scale]);
 
     // Switch to a different animation.
-    const anim = horizontal ? 1 : 0;
+    const anim = p.ix ? 1 : 0;
     if (p.anim !== anim) {
       p.anim = anim;
       p.frame = 0;
@@ -376,10 +461,16 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
     }
 
     // Display the player's health.
-    (p.el2 as HTMLElement).style.setProperty('--x', `${p.x}px`);
-    (p.el2 as HTMLElement).style.setProperty('--y', `${p.y - 60}px`);
+    el2.style.setProperty('--x', `${p.x}px`);
+    el2.style.setProperty('--y', `${p.y - 60}px`);
+
+    // Display the player's name tag.
+    el3.style.setProperty('--x', `${p.x}px`);
+    el3.style.setProperty('--y', `${p.y - 82}px`);
+    
   } else {
-    (p.el2 as HTMLElement).style.setProperty('--x', `-100px`);
+    el2.style.setProperty('--x', `-100px`);
+    el3.style.setProperty('--x', `-100px`);
   }
 }
 
@@ -387,11 +478,13 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
  * Draw the next animation frame.
  */
 function updatePlayerAnimation(p: Player) {
+  const el1 = getPlayerElement(p);
+
   const anim = ANIMATIONS[p.anim || 0];
   p.frame = (p.frame || 0) % anim.length;
 
   const frame = anim[p.frame];
-  const children = [...p.el1.children];
+  const children = [...el1.children];
   attrNS(children[0], 'd', frame[0]);
   attrNS(children[1], 'cx', '' + frame[1]);
   attrNS(children[2], 'cx', '' + frame[2]);
@@ -401,7 +494,9 @@ function updatePlayerAnimation(p: Player) {
  * 
  */
 function updatePlayerHealth(p: Player) {
-  text(p.el2, '' + p.hp);
+  const el2 = getPlayerHealthElement(p);
+
+  text(el2, '' + p.hp);
 
   if (p.hp < 1 && !p.dead) {
     killPlayer(p, true, false);
@@ -417,8 +512,10 @@ function updateCrosshairs(delta: number) {
     const p = players[activePlayer];
 
     if (p) {
-      const vertical = +keys.has('KeyS') - +keys.has('KeyW');
-      p.aim = clamp(p.aim + (vertical * delta * 0.001), -HALF_PI, HALF_PI);
+      if (master) {
+        const vertical = +keys.has('KeyS') - +keys.has('KeyW');
+        p.aim = clamp(p.aim + (vertical * delta * 0.001), -HALF_PI, HALF_PI);
+      }
 
       const [x, y] = rpos(p, 0, -10, 150);
 
@@ -458,19 +555,21 @@ function updatePowerbar(delta: number) {
 
   if (p) {
     if (!p.hasFired && (w.aim || w.place)) {
-      const isFireKeyDown = keys.has('KeyP');
+      if (master) {
+        const isFireKeyDown = keys.has('KeyP');
 
-      if (w.power) {
-        if (isFireKeyDown) {
-          p.power = clamp(p.power + delta * 0.001, 0, 1);
-        } else if (p.power > 0) {
+        if (w.power) {
+          if (isFireKeyDown) {
+            p.power = clamp(p.power + delta * 0.001, 0, 1);
+          } else if (p.power > 0) {
+            fireWeapon();
+            p.hasFired = true;
+            p.power = 0;
+          }
+        } else if (isFireKeyDown) {
           fireWeapon();
           p.hasFired = true;
-          p.power = 0;
         }
-      } else if (isFireKeyDown) {
-        fireWeapon();
-        p.hasFired = true;
       }
     }
 
@@ -491,18 +590,21 @@ function updatePowerbar(delta: number) {
  * Switch to the next player for the current team.
  */
 function activateNextPlayer() {
-  do {
-    activePlayer = (activePlayer + 2) % players.length;
-  } while (players[activePlayer].dead);
+  if (master) {
+    do {
+      activePlayer = (activePlayer + 2) % players.length;
+    } while (players[activePlayer].dead);
+  }
 
   unlockCamera();
+  socketActionGameState();
 }
 
 /**
  * 
  */
 function activateRandomPlayer() {
-  activePlayer = rng(0, 4) * 2 + activeTeam;
+  activePlayer = rngi(0, 4) * 2 + activeTeam;
   activateNextPlayer();
 }
 
@@ -510,32 +612,45 @@ function activateRandomPlayer() {
  * Switch to the next team, and select a random player from it.
  */
 function activateNextTeam() {
-  // Determine how many players just died on the last turn, and therefore are about to explode.
-  let count = 0;
-  for (const p of players) {
-    if (p.dead && !p.gone) {
-      count++;
+  if (master) {
+    // Determine how many players just died on the last turn, and therefore are about to explode.
+    let count = 0;
+    for (const p of players) {
+      if (p.dead && !p.gone) {
+        count++;
+      }
+    }
+
+    // Only move to the next team if there are no players about to explode.
+    if (count === 0) {
+      activeWeapon = 0;
+      activeTeam = 1 - activeTeam;
+      activateRandomPlayer();
+      randomiseWind();
+      resetPlayers();
+      socketActionGameState();
+
+      if (socket) {
+        master = false;
+        socketActionEndTurn();
+      } else {
+        caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
+      }
     }
   }
 
-  // Only move to the next team if there are no players about to explode.
-  if (count === 0) {
-    activeWeapon = 0;
-    activeTeam = 1 - activeTeam;
-    activateRandomPlayer();
-    updateWeaponUI();
-    unlockCamera();
-    randomiseWind();
-    resetPlayers();
-  }
+  unlockCamera();
+  updateWeaponUI();
 }
 
 /**
  * 
  */
 function requestEndTurn() {
-  cancelEndTurn();
-  timeout = setTimeout(activateNextTeam, 4000);
+  if (master) {
+    cancelEndTurn();
+    timeout = setTimeout(activateNextTeam, 4000);
+  }
 }
 
 /**
@@ -561,6 +676,10 @@ function resetPlayers() {
  * 
  */
 function killPlayer(p: Player, explode: boolean, immediately: boolean) {
+  if (master) {
+    socketActionKillPlayer(p, explode, immediately);
+  }
+
   // Note: this timeout has to be 2001, so that it only fires AFTER the standard timeouts that
   // fire after weapons have completed their sequences, which is 2000.
   const timeout = immediately ? 0 : 2001;
@@ -570,12 +689,24 @@ function killPlayer(p: Player, explode: boolean, immediately: boolean) {
   setTimeout(() => {
     p.gone = true;
 
-    attrNS(p.el1, 'opacity', '0');
-    (p.el2 as HTMLElement).style.display = 'none';
+    const el1 = getPlayerElement(p);
+    attrNS(el1, 'opacity', '0');
+
+    const el2 = getPlayerHealthElement(p);
+    (el2 as HTMLElement).style.display = 'none';
 
     if (explode) {
-      addBlast(p.x, p.y - 10, rng(60, 70), 1);
+      caption(`GOOD BYE ${NAMES[p.i]}!`)
       sfx(SFX_EXPLOSION);
+
+      if (master) {
+        const id = getId();
+        const r = rngi(60, 70);
+        socketActionAddBlast(id, p.x, p.y - 10, r);
+        addBlast(id, p.x, p.y - 10, r, 1);
+      }
+    } else {
+      caption(`${NAMES[p.i]} IS SLEEPING WITH THE FISHES!`)
     }
 
     lockCamera(p);
@@ -613,10 +744,10 @@ function updateExplosions(delta: number) {
 /**
  * Add a new explosion effect.
  */
-function addExplosion(x: number, y: number, r: number, multicolor = false) {
+function addExplosion(x: number, y: number, r: number, hue: number | false = false) {
   const el = docElemById('explosion')!.cloneNode(true) as Element;
-  const fill = multicolor ? `hsl(${rng(0, 360)}, 100%, 50%)` : '#fff';
-  const ttl = multicolor ? 1000 : 500;
+  const fill = hue === false ? '#fff' : `hsl(${hue}, 100%, 50%)`;
+  const ttl = hue === false ? 500 : 1000;
 
   attrNS(el, 'cx', '' + x);
   attrNS(el, 'cy', '' + y);
@@ -632,11 +763,11 @@ function addExplosion(x: number, y: number, r: number, multicolor = false) {
 /**
  * 
  */
-function addSmoke(x: number, y: number, multicolor = false) {
+function addSmoke(x: number, y: number, hue: number | false = false) {
   for (let i = 0; i < 5; i++) {
     const a = Math.PI * 0.4 * i;
     const d = Math.random() * 5 + 5;
-    addExplosion(x + Math.sin(a) * d, y + Math.cos(a) * d, rng(6, 9), multicolor);
+    addExplosion(x + Math.sin(a) * d, y + Math.cos(a) * d, rngi(6, 9), hue);
   }
 }
 
@@ -654,7 +785,11 @@ function initWeaponsUI() {
     el.innerHTML = `<svg>${WEAPONS[i].icon}</svg>`;
 
     el.addEventListener('mousedown', function() {
-      activeWeapon = i;
+      if (master) {
+        activeWeapon = i;
+        socketActionGameState();
+      }
+
       updateWeaponUI();
       hideCrosshairs(false);
     });
@@ -680,19 +815,25 @@ function updateWeaponUI() {
  * Fire the active weapon.
  */
 function fireWeapon() {
+  const { id: pid, x, y, dir, aim, power } = players[activePlayer];
+  const id = getId();
+  const tx = mouse.x + camera.x - vw / 2;
+  const ty = mouse.y;
+  const seed = (Math.random() * 2 ** 32) >>> 0;
+
   switch (activeWeapon) {
-    case 0: return fireMissile();
-    case 1: return fireShotgun();
-    case 2: return fireUzi();
-    case 3: return fireAirStrike();
-    case 4: return placeDynamite();
-    case 5: return fireGrenade();
-    case 6: return fireHolyHandGrenade();
-    case 7: return fireMinigun();
-    case 8: return fireHomingMissile();
-    case 9: return fireClusterBomb();
-    case 10: return fireNyanCats();
-    case 11: return fireCricketBat();
+    case 0: return fireMissile(id, x, y, dir, aim, power);
+    case 1: return fireShotgun(id, x, y, dir, aim, seed);
+    case 2: return fireUzi(id, x, y, dir, aim, seed);
+    case 3: return fireAirStrike(id, x, tx, ty);
+    case 4: return placeDynamite(id, x, y);
+    case 5: return fireGrenade(id, x, y, dir, aim, power);
+    case 6: return fireHolyHandGrenade(id, x, y, dir, aim, power);
+    case 7: return fireMinigun(id, x, y, dir, aim, seed);
+    case 8: return fireHomingMissile(id, x, y, dir, aim, power, tx, ty);
+    case 9: return fireClusterBomb(id, x, y, dir, aim, power);
+    case 10: return fireNyanCats(id, tx, ty, seed);
+    case 11: return fireCricketBat(pid, x, y, dir, aim);
   }
 }
 
@@ -701,21 +842,33 @@ function fireWeapon() {
 // ================================================================================================
 
 /**
+ * 
+ */
+function getMissileElement(m: Missile) {
+  if (m.invis) {
+    return null;
+  }
+
+  const type = m.nyan ? 'nyancat' : m.homing ? 'homing' : 'missile';
+  return getElement(objects, type, m.id);
+}
+
+/**
  * Update the velocity and position of any live missiles, then check for collisions. If a missile
  * collides with the terrain, create a blast, and remove it.
  */
 function updateMissiles(delta: number) {
-  let i = missiles.length;
+  for (const [_, m] of missiles) {
+    const el = getMissileElement(m);
 
-  while (i--) {
-    const m = missiles[i];
-    m.ttl = (m.ttl || 0) + delta;
+    // Display a smoke trial.
     m.dt = (m.dt || 0) + delta;
-
     if (m.dt >= 30) {
       m.dt -= 30;
-      addSmoke(m.x, m.y, m.nyan);
+      addSmoke(m.x, m.y, m.nyan ? ((m.ttl || 0) / 10) % 360 : false);
     }
+
+    m.ttl = (m.ttl || 0) + delta;
 
     // Non-homing missiles (and homing missiles for the first 500ms).
     if (m.ttl < 500 || !m.tx || !m.ty ) {
@@ -750,16 +903,22 @@ function updateMissiles(delta: number) {
     m.x += m.dx * delta;
     m.y += m.dy * delta;
 
-    // Render the changes into the DOM.
-    if (m.el) {
-      const angle = m.nyan ? 0 : Math.atan2(m.dy, m.dx);
-      transform(m.el, m.x, m.y, [angle * 180 / Math.PI, 0, 0]);
+    // Sync position to clients.
+    if (master) {
+      socketActionSyncMissile(m.id, m.x, m.y, m.dx, m.dy);
     }
 
     // Check for collisions.
     // There is no player with index of '999', so this will check against all players.
-    if (checkCollision(m.x, m.y, 999)) {
-      explodeMissile(i);
+    if (master && checkCollision(m.x, m.y, 999)) {
+      socketActionRemoveMissile(m.id);
+      explodeMissile(m);
+    }
+
+    // Render the changes into the DOM.
+    if (el) {
+      const angle = m.nyan ? 0 : Math.atan2(m.dy, m.dx);
+      transform(el, m.x, m.y, [angle * 180 / Math.PI, 0, 0]);
     }
   }
 }
@@ -768,41 +927,55 @@ function updateMissiles(delta: number) {
  * When the missile explodes, it creates a blast in the terrain, and it removed from the list and
  * from the DOM. Then, after a couple of seconds, the turn ends and we switch to the next team.
  */
-function explodeMissile(i: number) {
-  const m = missiles[i];
+function explodeMissile(m: Missile) {
+  if (master) {
+    const id = getId();
+    socketActionAddBlast(id, m.x, m.y, m.power);
+    addBlast(id, m.x, m.y, m.power, 1.2);
+  }
 
-  addBlast(m.x, m.y, m.power, 1.2);
   sfx(SFX_EXPLOSION);
 
-  m.el?.remove();
-  missiles.splice(i, 1);
+  destroyed.push(m.id);
+  missiles.delete(m.id);
 
-  if (missiles.length === 0) {
+  if (missiles.size === 0) {
     hideCrosshairs(true);
     requestEndTurn();
   }
 }
 
 /**
+ * 
+ */
+function fireCharge(id: number, x: number, y: number, dx: number, dy: number, power: number) {
+  if (master) {
+    socketActionAddCharge(id, x, y, dx, dy, power);
+  }
+
+  missiles.set(id, { id, x, y, dx, dy, power, wind: false, grav: true, invis: true });
+  cancelEndTurn();
+}
+
+/**
  * Launch a missile from the player's position, in the direction they are aiming, and with the
  * correct amount of power based on how long they held down the power button.
  */
-function fireMissile() {
-  const p = players[activePlayer];
+function fireMissile(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  if (master) {
+    socketActionAddMissile(id, x, y, dir, aim, power);
+  }
 
-  const el = docElemById('missile')!.cloneNode(true) as Element;
-  objects.appendChild(el);
+  const dx = Math.cos(aim) * power * 2 * dir;
+  const dy = Math.sin(aim) * power * 2;
 
-  const dx = Math.cos(p.aim) * p.power * 2 * p.dir;
-  const dy = Math.sin(p.aim) * p.power * 2;
+  const sx = x + (dx * 10);
+  const sy = y - 10 + (dy * 10);
 
-  const x = p.x + (dx * 10);
-  const y = p.y - 10 + (dy * 10);
+  const dmg = rngi(60, 70);
 
-  const power = rng(60, 70);
-
-  const missile: Missile = { x, y, dx, dy, power, el, wind: true, grav: true };
-  missiles.push(missile);
+  const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg, wind: true, grav: true };
+  missiles.set(id, missile);
   lockCamera(missile);
 
   sfx(SFX_SHOOT);
@@ -813,31 +986,32 @@ function fireMissile() {
 /**
  * 
  */
-function fireHomingMissile() {
+function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: number, power: number, tx: number, ty: number) {
   const p = players[activePlayer];
 
-  if (p.power === 0) {
-    // Phase 1, set a target.
-    p.tx = mouse.x + camera.x - vw / 2;
-    p.ty = mouse.y;
+  if (master) {
+    socketActionAddHomingMissile(id, x, y, dir, aim, power, tx, ty);
+  }
 
-    showCrosshairs(true, p.tx, p.ty);
+  if (power === 0) {
+    // Phase 1, set a target.
+    p.tx = tx;
+    p.ty = ty;
+
+    showCrosshairs(true, tx, ty);
 
   } else if (p.tx && p.ty) {
     // Phase 2, fire the missile.
-    const el = docElemById('homing')!.cloneNode(true) as Element;
-    objects.appendChild(el);
+    const dx = Math.cos(aim) * power * 2 * dir;
+    const dy = Math.sin(aim) * power * 2;
 
-    const dx = Math.cos(p.aim) * p.power * 2 * p.dir;
-    const dy = Math.sin(p.aim) * p.power * 2;
+    const sx = x + (dx * 10);
+    const sy = y - 10 + (dy * 10);
 
-    const x = p.x + (dx * 10);
-    const y = p.y - 10 + (dy * 10);
+    const dmg = rngi(60, 70);
 
-    const power = rng(60, 70);
-
-    const missile: Missile = { x, y, dx, dy, power, el, tx: p.tx, ty: p.ty };
-    missiles.push(missile);
+    const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg, tx: p.tx, ty: p.ty, homing: true };
+    missiles.set(id, missile);
     lockCamera(missile);
 
     p.tx = p.ty = undefined;
@@ -849,20 +1023,21 @@ function fireHomingMissile() {
 /**
  * Drop a series of 5 missiles from the sky on a given location.
  */
-async function fireAirStrike() {
-  const p = players[activePlayer];
-  const x = mouse.x + camera.x - vw / 2;
-  const dir = p.x < x ? 1 : -1;
+async function fireAirStrike(id: number, x: number, tx: number, ty: number) {
+  if (master) {
+    socketActionAddAirStrike(id, x, tx, ty);
+  }
 
+  const dir = x < tx ? 1 : -1;
   const dx = 0.2 * dir;
 
-  lockCamera({ x, y: 0 });
-  showCrosshairs(true, x, mouse.y);
+  lockCamera({ x: tx, y: ty });
+  showCrosshairs(true, tx, ty);
 
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
       const offset = ((i - 2.5) * 50 - 150) * dir;
-      await fireAirStrikeRound(x + offset, dx);
+      await fireAirStrikeRound(id + i, tx + offset, dx);
     }
   }, 1000);
 }
@@ -870,18 +1045,15 @@ async function fireAirStrike() {
 /**
  * Drop a single missle from the sky.
  */
-async function fireAirStrikeRound(x: number, dx: number): Promise<void> {
+async function fireAirStrikeRound(id: number, x: number, dx: number): Promise<void> {
   return new Promise((resolve) => {
-    const el = docElemById('missile')!.cloneNode(true) as Element;
-    objects.appendChild(el);
-
     const dy = 0.2;
 
-    const power = rng(55, 65);
+    const power = rngi(55, 65);
     
     setTimeout(() => {
-      const missile: Missile = { x, y: -50, dx, dy, power, el, wind: false, grav: true };
-      missiles.push(missile);
+      const missile: Missile = { id, x, y: -50, dx, dy, power, wind: false, grav: true };
+      missiles.set(id, missile);
 
       cancelEndTurn();
       resolve();
@@ -892,20 +1064,23 @@ async function fireAirStrikeRound(x: number, dx: number): Promise<void> {
 /**
  * 
  */
-async function fireNyanCats() {
-  const x = mouse.x + camera.x - vw / 2;
-  const y = mouse.y;
+async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
+  if (master) {
+    socketActionAddNyanCats(id, tx, ty, seed);
+  }
 
-  lockCamera({ x, y: 0 });
-  showCrosshairs(true, x, y);
+  lockCamera({ x: tx, y: ty });
+  showCrosshairs(true, tx, ty);
+
+  const rng = splitmix32(seed);
 
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
-      const angle = Math.PI / 2 + (Math.random() * 0.5 - 0.25);
+      const angle = Math.PI / 2 + (rng() * 0.5 - 0.25);
       const dx = Math.cos(angle) * 0.2;
       const dy = Math.sin(angle) * 0.2;
 
-      await fireNyanCat(x - dx * 100, -20, dx, dy);
+      await fireNyanCat(id + i, tx - dx * 100, -20, dx, dy);
     }
   }, 1000);
 }
@@ -913,27 +1088,16 @@ async function fireNyanCats() {
 /**
  * 
  */
-async function fireNyanCat(x: number, y: number, dx: number, dy: number): Promise<void> {
+async function fireNyanCat(id: number, x: number, y: number, dx: number, dy: number): Promise<void> {
   return new Promise((resolve) => {
-    const el = docElemById('nyancat')!.cloneNode(true) as Element;
-    objects.appendChild(el);
-
     setTimeout(() => {
-      const missile: Missile = { x, y, dx, dy, power: rng(75, 90), el, wind: false, grav: false, nyan: true };
-      missiles.push(missile);
+      const missile: Missile = { id, x, y, dx, dy, power: rngi(75, 90), wind: false, grav: false, nyan: true };
+      missiles.set(id, missile);
 
       cancelEndTurn();
       resolve();
     }, 1250);
   });
-}
-
-/**
- * 
- */
-function fireCharge(x: number, y: number, dx: number, dy: number, power: number) {
-  missiles.push({ x, y, dx, dy, power, wind: false, grav: true });
-  cancelEndTurn();
 }
 
 // ================================================================================================
@@ -976,36 +1140,46 @@ function addTracer(x1: number, y1: number, x2: number, y2: number) {
 /**
  * Fire the shotgun, consisting of 2 high-powered rounds.
  */
-function fireShotgun() {
-  fireGun(1, [40, 45], 0.05, 1000);
+function fireShotgun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  if (master) {
+    socketActionAddShotgun(id, x, y, dir, aim, seed);
+  }
+  fireGun(id, x, y, dir, aim, seed, 1, [40, 45], 0.05, 1000);
 }
 
 /**
  * Fire the uzi, consisting of 10 low-powered rounds that sprad out more.
  */
-function fireUzi() {
-  fireGun(8, [12, 16], 0.1, 50);
+function fireUzi(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  if (master) {
+    socketActionAddUzi(id, x, y, dir, aim, seed);
+  }
+  fireGun(id, x, y, dir, aim, seed, 8, [12, 16], 0.1, 50);
 }
 
 /**
  * Fire the uzi, consisting of 10 low-powered rounds that sprad out more.
  */
-function fireMinigun() {
-  fireGun(30, [16, 20], 0.125, 40);
+function fireMinigun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  if (master) {
+    socketActionAddMinigun(id, x, y, dir, aim, seed);
+  }
+  fireGun(id, x, y, dir, aim, seed, 30, [16, 20], 0.125, 40);
 }
 
 /**
  * Fire a generic gun.
  */
-async function fireGun(rounds: number, power: [number, number], spread: number, delay: number) {
-  const player = players[activePlayer];
+async function fireGun(id: number, x: number, y: number, dir: number, aim: number, seed: number, rounds: number, power: [number, number], spread: number, delay: number) {
+  const sx = x;
+  const sy = y - 10;
+  const angle = dir === 1 ? aim : Math.PI - aim;
 
-  const x = player.x;
-  const y = player.y - 10;
-  const angle = player.dir === 1 ? player.aim : Math.PI - player.aim;
+  const rng = splitmix32(seed);
 
   for (let i = 0; i < rounds; i++) {
-    await fireRound(x, y, angle, power, spread, delay, i === 0);
+    const r = (rng() * spread * 2) - spread;
+    await fireRound(id + i, sx, sy, angle + r, power, delay, i === 0);
   }
 
   requestEndTurn();
@@ -1014,13 +1188,12 @@ async function fireGun(rounds: number, power: [number, number], spread: number, 
 /**
  * Fire a single gun round.
  */
-async function fireRound(x: number, y: number, angle: number, power: [number, number], spread: number, delay: number, lock: boolean): Promise<void> {
+async function fireRound(id: number, x: number, y: number, angle: number, power: [number, number], delay: number, lock: boolean): Promise<void> {
   return new Promise((resolve) => {
     const player = players[activePlayer];
 
-    const r = (Math.random() * spread * 2) - spread;
-    const nx = Math.cos(angle + r);
-    const ny = Math.sin(angle + r);
+    const nx = Math.cos(angle);
+    const ny = Math.sin(angle);
     const dist = raycastBrute(x, y, nx, ny, player.i);
   
     if (dist !== Infinity) {
@@ -1033,7 +1206,13 @@ async function fireRound(x: number, y: number, angle: number, power: [number, nu
   
       setTimeout(() => {
         addTracer(x, y, tx, ty);
-        addBlast(tx, ty, rng(power[0], power[1]), 0.25, activePlayer);
+
+        if (master) {
+          const dmg = rngi(power[0], power[1]);
+          socketActionAddBlast(id, tx, ty, dmg);
+          addBlast(id, tx, ty, dmg, 0.25, activePlayer);
+        }
+
         resolve();
       }, lock ? 1000 : delay);
     } else {
@@ -1048,20 +1227,28 @@ async function fireRound(x: number, y: number, angle: number, power: [number, nu
 // ================================================================================================
 
 /**
+ * 
+ */
+function getDynamiteElement(d: Dynamite) {
+  return getElement(objects, 'dynamite', d.id, (el) => {
+    transform(el, d.x, d.y, [Math.random() * 10 - 5, 0, 0]);
+  });
+}
+
+/**
  * Update all sticks of dynamite, reducing their ttl, making them flash accordingly.
  */
 function updateDynamites(delta: number) {
-  let i = dynamites.length;
+  for (const [_, d] of dynamites) {
+    const el = getDynamiteElement(d);
 
-  while (i--) {
-    const d = dynamites[i];
     d.ttl -= delta;
 
     // Flash between red and white.
-    d.el.classList.toggle('flash', d.ttl < 2000 && !!(~~(d.ttl / 250) % 2));
+    el.classList.toggle('flash', d.ttl < 2000 && !!(~~(d.ttl / 250) % 2));
 
     if (d.ttl <= 0) {
-      explodeDynamite(i);
+      explodeDynamite(d);
     }
   }
 }
@@ -1069,19 +1256,16 @@ function updateDynamites(delta: number) {
 /**
  * Place a stick of dynamite at the player's location, then give them time to run away!
  */
-function placeDynamite() {
-  const p = players[activePlayer];
+function placeDynamite(id: number, x: number, y: number ) {
+  if (master) {
+    socketActionAddDynamite(id, x, y);
+  }
 
-  const el = docElemById('dynamite')!.cloneNode(true) as Element;
-  objects.appendChild(el);
+  const sx = x;
+  const sy = y - 5;
 
-  const x = p.x;
-  const y = p.y - 5;
-
-  transform(el, x, y, [Math.random() * 10 - 5, 0, 0]);
-
-  const d: Dynamite = { x, y, el, ttl: 5000 };
-  dynamites.push(d);
+  const d: Dynamite = { id, x: sx, y: sy, dmg: rngi(90, 100), ttl: 5000 };
+  dynamites.set(id, d);
 
   cancelEndTurn();
 }
@@ -1089,14 +1273,19 @@ function placeDynamite() {
 /**
  * Explode the dynamite, remove it from the game, and create a blast crater.
  */
-function explodeDynamite(i: number) {
-  const d = dynamites[i];
+function explodeDynamite(d: Dynamite) {
+  const el = getDynamiteElement(d);
 
-  addBlast(d.x, d.y, rng(90, 100), 2.4);
+  if (master) {
+    const id = getId();
+    addBlast(id, d.x, d.y, d.dmg, 2.4);
+    socketActionAddBlast(id, d.x, d.y, d.dmg);
+  }
+
   sfx(SFX_EXPLOSION);
 
-  d.el.remove();
-  dynamites.splice(i, 1);
+  el.remove();
+  dynamites.delete(d.id);
 
   requestEndTurn();
 }
@@ -1108,11 +1297,21 @@ function explodeDynamite(i: number) {
 /**
  * 
  */
-function updateGrenades(delta: number) {
-  let i = grenades.length;
+function getGrenadeElement(g: Grenade) {
+  const type = g.holy ? 'holy' : g.cluster ? 'clusterbomb' : 'grenade';
 
-  while (i--) {
-    const g = grenades[i];
+  return getElement(objects, type, g.id, (el) => {
+    transform(el, g.x, g.y);
+  });
+}
+
+/**
+ * 
+ */
+function updateGrenades(delta: number) {
+  for (const [_, g] of grenades) {
+    const el = getGrenadeElement(g);
+
     g.ttl -= delta;
 
     // Apply gravity.
@@ -1123,10 +1322,10 @@ function updateGrenades(delta: number) {
     g.y += g.dy * delta;
 
     // Render the changes into the DOM.
-    transform(g.el, g.x, g.y);
+    transform(el, g.x, g.y);
 
     // Flash between black and white.
-    g.el.classList.toggle('flash', g.ttl < 2000 && !!(~~(g.ttl / 250) % 2));
+    el.classList.toggle('flash', g.ttl < 2000 && !!(~~(g.ttl / 250) % 2));
 
     // Check for collisions.
     if (checkCollision(g.x, g.y + 8)) {
@@ -1167,9 +1366,15 @@ function updateGrenades(delta: number) {
       g.dy = bounce[1] * 0.6;
     }
 
+    // Sync position to clients.
+    if (master) {
+      socketActionSyncGrenade(g.id, g.x, g.y, g.dx, g.dy);
+    }
+
     // Explode the grenade when the fuse has run down.
-    if (g.ttl <= 0) {
-      explodeGrenade(i);
+    if (master && g.ttl <= 0) {
+      socketActionRemoveGrenade(g.id);
+      explodeGrenade(g);
     }
   }
 }
@@ -1177,25 +1382,22 @@ function updateGrenades(delta: number) {
 /**
  * 
  */
-function fireGrenade(holy = false, cluster = false) {
-  const p = players[activePlayer];
+function fireGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number, holy = false, cluster = false) {
+  if (master) {
+    const fn = holy ? socketActionAddHolyHandGrenade : cluster ? socketActionAddClusterBomb : socketActionAddGrenade;
+    fn(id, x, y, dir, aim, power);
+  }
 
-  const id = holy ? 'holy' : cluster ? 'clusterbomb' : 'grenade';
-  const el = docElemById(id)!.cloneNode(true) as Element;
-  objects.appendChild(el);
+  const sx = x;
+  const sy = y - 10;
 
-  const x = p.x;
-  const y = p.y - 10;
+  const dx = Math.cos(aim) * power * 1.25 * dir;
+  const dy = Math.sin(aim) * power * 1.25;
 
-  const dx = Math.cos(p.aim) * p.power * 1.25 * p.dir;
-  const dy = Math.sin(p.aim) * p.power * 1.25;
+  const dmg = rngi(45, 55) * (holy ? 4 : 1);
 
-  const power = rng(45, 55) * (holy ? 4 : 1);
-
-  transform(el, x, y);
-
-  const g: Grenade = { x, y, dx, dy, el, holy, cluster, power, ttl: 5000 };
-  grenades.push(g);
+  const g: Grenade = { id, x: sx, y: sy, dx, dy, holy, cluster, power: dmg, ttl: 5000 };
+  grenades.set(id, g);
 
   lockCamera(g);
   cancelEndTurn();
@@ -1204,40 +1406,45 @@ function fireGrenade(holy = false, cluster = false) {
 /**
  * 
  */
-function fireHolyHandGrenade() {
-  fireGrenade(true, false);
+function fireHolyHandGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  fireGrenade(id, x, y, dir, aim, power, true, false);
 }
 
 /**
  * 
  */
-function fireClusterBomb() {
-  fireGrenade(false, true);
+function fireClusterBomb(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  fireGrenade(id, x, y, dir, aim, power, false, true);
 }
 
 /**
  * 
  */
-function explodeGrenade(i: number) {
-  const g = grenades[i];
+function explodeGrenade(g: Grenade) {
+  if (master) {
+    const id = getId();
+    socketActionAddBlast(id, g.x, g.y, g.power);
+    addBlast(id, g.x, g.y, g.power, 1.2);
+  }
 
-  addBlast(g.x, g.y, g.power, 1.2);
   sfx(SFX_EXPLOSION);
 
-  g.el.remove();
-  grenades.splice(i, 1);
+  destroyed.push(g.id);
+  grenades.delete(g.id);
 
-  const clusters = g.holy ? 10 : g.cluster ? 5 : 0;
-  const power = g.holy ? rng(70, 90) : g.cluster ? rng(30, 40) : 0;
+  if (master) {
+    const clusters = g.holy ? 10 : g.cluster ? 5 : 0;
+    const power = g.holy ? rngi(70, 90) : g.cluster ? rngi(30, 40) : 0;
+
+    for (let i = 0; i < clusters; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dx = Math.sin(angle) * 0.25;
+      const dy = Math.cos(angle) * 0.25 - 0.5;
+      fireCharge(g.id + i, g.x, g.y, dx, dy, power);
+    }
+  }
 
   requestEndTurn();
-
-  for (let i = 0; i < clusters; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const dx = Math.sin(angle) * 0.25;
-    const dy = Math.cos(angle) * 0.25 - 0.5;
-    fireCharge(g.x, g.y, dx, dy, power);
-  }
 }
 
 // ================================================================================================
@@ -1247,31 +1454,32 @@ function explodeGrenade(i: number) {
 /**
  * 
  */
-function fireCricketBat() {
-  const p1 = players[activePlayer];
+function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: number) {
+  if (master) {
+    socketActionAddCricketBat(pid, x, y, dir, aim);
 
-  for (let i = 0; i < players.length; i++) {
-    const p2 = players[i];
+    for (let i = 0; i < players.length; i++) {
+      const p2 = players[i];
 
-    if (p1.i === p2.i || p2.dead) {
-      continue;
-    }
+      if (pid === p2.id || p2.dead) {
+        continue;
+      }
 
-    const d2 = sqdist(p1.x, p1.y, p2.x, p2.y);
+      const d2 = sqdist(x, y, p2.x, p2.y);
 
-    if (d2 < 2000) {
-      const angle = p1.aim;
-      const force = 1;
+      if (d2 < 2000) {
+        const force = 1;
 
-      p2.ragdoll = true;
-      p2.dx = Math.cos(angle) * force * p1.dir;
-      p2.dy = Math.sin(angle) * force;
-      p2.vr = Math.max(20, force * 20 * p2.dir);
-      p2.hp -= 15;
+        p2.ragdoll = true;
+        p2.dx = Math.cos(aim) * dir;
+        p2.dy = Math.sin(aim);
+        p2.vr = Math.max(20, 20 * p2.dir);
+        p2.hp -= 15;
 
-      updatePlayerHealth(p2);
-      lockCamera(p2);
-      requestEndTurn();
+        updatePlayerHealth(p2);
+        lockCamera(p2);
+        requestEndTurn();
+      }
     }
   }
 }
@@ -1288,10 +1496,12 @@ function updateCamera(delta: number) {
   let horizontal = +keys.has('ArrowRight') - +keys.has('ArrowLeft');
 
   // Mouse scrolling.
-  if (mouse.x > vw - 100) {
-    horizontal = 1;
-  } else if (mouse.x < 100) {
-    horizontal = -1;
+  if (mouse.over) {
+    if (mouse.x > vw - 100) {
+      horizontal = 1;
+    } else if (mouse.x < 100) {
+      horizontal = -1;
+    }
   }
 
   const min = vw / 2;
@@ -1498,7 +1708,7 @@ function initHeights() {
   for (let i = 0; i < WORLD_SIZE + 10; i += 10) {
     const base = 0 - Math.sin(i / WORLD_SIZE * Math.PI);
     const aux = Math.abs(noise(i, 5, WORLD_SCALE, 0.4));
-    heights.push((base * NOISE_AMPLITUDE) - (aux * NOISE_AMPLITUDE / 2));
+    heights.push(Math.round((base * NOISE_AMPLITUDE) - (aux * NOISE_AMPLITUDE / 2)));
   }
 }
 
@@ -1601,7 +1811,7 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
  */
 function initWater(id: string, offset: number) {
   const rect = docElemById(id)!;
-  attrNS(rect, 'x', '' + (-offset * 2.7 + rng(-40, 0)));
+  attrNS(rect, 'x', '' + (-offset * 2.7 + rngi(-40, 0)));
   attrNS(rect, 'y', '' + (vh - 100 - offset));
   attrNS(rect, 'width', '' + OCEAN_SIZE);
 }
@@ -1628,36 +1838,38 @@ function getTerrainHeight(x: number): number {
 /**
  * Punch a hole through the various layer of terrain.
  */
-function addBlast(x: number, y: number, r: number, kb: number, ignorePlayer?: number) {
+function addBlast(_: number, x: number, y: number, r: number, kb: number, ignorePlayer?: number) {
   addHoles(x, y, r);
   addExplosion(x, y, r * 0.9);
   shakeCamera();
 
   holes.push({ x, y, r, r2: r * r });
 
-  const r2 = Math.pow(r * 1.5, 2);
+  if (master) {
+    const r2 = Math.pow(r * 1.5, 2);
 
-  for (let i = 0; i < players.length; i++) {
-    const p = players[i];
+    for (let i = 0; i < players.length; i++) {
+      const p = players[i];
 
-    if (ignorePlayer === i || p.dead) {
-      continue;
-    }
+      if (ignorePlayer === i || p.dead) {
+        continue;
+      }
 
-    const d2 = sqdist(x, y, p.x, p.y);
+      const d2 = sqdist(x, y, p.x, p.y);
 
-    if (d2 < r2) {
-      const damage = (1 - (d2 / r2)) * r / 2;
-      const force = Math.log2((1 - (d2 / r2)) * r) / 2;
-      const angle = Math.atan2(p.y - y, p.x - x);
+      if (d2 < r2) {
+        const damage = (1 - (d2 / r2)) * r / 2;
+        const force = Math.log2((1 - (d2 / r2)) * r) / 2;
+        const angle = Math.atan2(p.y - y, p.x - x);
 
-      p.ragdoll = true;
-      p.dx = kb * (Math.cos(angle) * force * 0.2);
-      p.dy = kb * (Math.sin(angle) * force * 0.2 - 0.2);
-      p.vr = Math.max(10, force * 10 * p.dir);
-      p.hp = Math.max(Math.floor(p.hp - damage), 0);
+        p.ragdoll = true;
+        p.dx = kb * (Math.cos(angle) * force * 0.2);
+        p.dy = kb * (Math.sin(angle) * force * 0.2 - 0.2);
+        p.vr = Math.max(10, force * 10 * p.dir);
+        p.hp = Math.max(Math.floor(p.hp - damage), 0);
 
-      updatePlayerHealth(p);
+        updatePlayerHealth(p);
+      }
     }
   }
 }
@@ -1707,10 +1919,25 @@ function initSvg(): HTMLElement {
 // ================================================================================================
 
 /**
+ * Create a random number generator function, using the 'splitmix32' algorithm.
+ */
+function splitmix32(a: number) {
+  return function() {
+    a |= 0;
+    a = a + 0x9e3779b9 | 0;
+    let t = a ^ a >>> 16;
+    t = Math.imul(t, 0x21f0aaad);
+    t = t ^ t >>> 15;
+    t = Math.imul(t, 0x735a2d97);
+    return ((t = t ^ t >>> 15) >>> 0) / 4294967296;
+  }
+}
+
+/**
  * Generate a random integer between "a" (inclusive) and "b" (exclusive).
  */
-function rng(a: number, b: number): number {
-  return Math.floor(a + (Math.random() * (b - a)));
+function rngi(a: number, b: number): number {
+  return Math.floor(a + (rngf() * (b - a)));
 }
 
 /**
@@ -1857,9 +2084,45 @@ function transform(el: Element, x: number, y: number, angle: [number, number, nu
   attr(el, 'transform', `translate(${x} ${y}) rotate(${angle[0]} ${angle[1]} ${angle[2]}) scale(${scale[0]} ${scale[1]})`);
 }
 
+/**
+ * 
+ */
+function getElement<E extends Element>(container: HTMLElement, key: string, id: number, cb?: (element: E) => void): E {
+  let el = elements[id] as E;
+
+  if (!el) {
+    el = docElemById(key)!.cloneNode(true) as E;
+    cb?.(el);
+    container.appendChild(el);
+    elements[id] = el;
+  }
+
+  return el;
+}
+
+/**
+ * 
+ */
+function getId(): number {
+  return rngi(0, 999999999);
+}
+
+/**
+ * 
+ */
+function updateDestroyedElement() {
+  for (const id of destroyed) {
+    elements[id]?.remove();
+  }
+
+  destroyed = [];
+}
+
 // ================================================================================================
 // ======== BITMAP TEXT ===========================================================================
 // ================================================================================================
+
+let captionsttl = 0;
 
 /**
  * Draw some bitmap text inside of the given element.
@@ -1874,6 +2137,28 @@ function text(el: Element, str: string) {
   }
 }
 
+/**
+ * 
+ */
+function caption(str: string) {
+  text(captions, str);
+  captionsttl = 2500;
+  captions.style.display = 'block';
+}
+
+/**
+ * 
+ */
+function updateCaptions(delta: number) {
+  if (captionsttl > 0) {
+    captionsttl -= delta;
+  }
+
+  if (captionsttl <= 0) {
+    captions.style.display = 'none';
+  }
+}
+
 // ================================================================================================
 // ======== SOUND EFFECTS =========================================================================
 // ================================================================================================
@@ -1883,4 +2168,425 @@ function text(el: Element, str: string) {
  */
 function sfx(params: any[]) {
   zzfx(...params);
+}
+
+// ================================================================================================
+// ======== MULTIPLAYER ===========================================================================
+// ================================================================================================
+
+// Connect to the relay server, and listen for messages.
+let socket: WebSocket | null = null;
+let syncttl = 0;
+let pending: Map<string, string> = new Map();
+let sent: Map<string, string> = new Map();
+let callbacks: Record<string, (data: string) => void> = {};
+
+/**
+ * 
+ */
+function updateStateSync(delta: number) {
+  if (socket && socket.readyState === 1) {
+    syncttl += delta;
+
+    if (syncttl >= 50 && pending.size > 0) {
+      syncttl -= 50;
+      socketSend([...pending.values()].join('\n'));
+      pending.clear();
+    }
+  }
+}
+
+/**
+ * 
+ */
+function socketInit() {
+  socket = new WebSocket("wss://relay.js13kgames.com/worms-13k/test");
+  socket.onmessage = socketReceive;
+}
+
+/**
+ * 
+ */
+function socketAction(prefix: string, data = '', cache = false) {
+  const msg = prefix + '|' + data;
+
+  if (sent.get(prefix) !== msg) {
+    pending.set(prefix, msg);
+  }
+
+  if (cache) {
+    sent.set(prefix, msg);
+  }
+}
+
+/**
+ * 
+ */
+function socketSend(data: string) {
+  if (socket) {
+    socket.send(data);
+  }
+}
+
+/**
+ * 
+ */
+function socketRegister(prefix: string, cb: (data: string) => void) {
+  callbacks[prefix] = cb;
+}
+
+// ================================================================================================
+// ======== MULTIPLAYER: RECEIVE ==================================================================
+// ================================================================================================
+
+/**
+ * 
+ */
+function socketReceive(event: MessageEvent<string>) {
+  const actions = event.data.split('\n');
+  
+  for (const action of actions) {
+    const code = action.substring(0, 2);
+    const data = action.substring(3);
+    const cb = callbacks[code];
+    cb?.(data);
+  }
+}
+
+//// CORE
+
+// "G0" Request from other client to join.
+socketRegister('G0', () => {
+  if (started) {
+    socketActionAcceptJoin();
+    socketActionGameState();
+  }
+});
+
+// "G1" Response from master, accepting join request.
+socketRegister('G1', (data) => {
+  const json = JSON.parse(data);
+  heights = json[0];
+  players = json[1];
+  joinGame();
+
+  for (const p of players) {
+    updatePlayerHealth(p);
+    text(getPlayerNameElement(p), NAMES[p.i]);
+  }
+});
+
+// "G2" Receive game state.
+socketRegister('G2', (data) => {
+  const values = unpack(data);
+  activeTeam = int(values[0]);
+  activePlayer = int(values[1]);
+  activeWeapon = int(values[2]);
+  windSpeed = f(values[3]);
+  unlockCamera();
+  updateWeaponUI();
+});
+
+// "G3" End of turn.
+socketRegister('G3', () => {
+  master = true;
+  caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
+});
+
+//// PLAYERS
+
+// "P=" Sync the state of a player.
+socketRegister('P=', (data) => {
+  const [i, x, y, dx, dy, aim, dir, hp, ix, power] = unpack(data);
+  const p = players[int(i)];
+  if (p) {
+    p.x = f(x);
+    p.y = f(y);
+    p.dx = f(dx);
+    p.dy = f(dy);
+    p.aim = f(aim);
+    p.dir = dir === '1' ? 1 : -1;
+    p.ix = f(ix);
+    p.power = f(power);
+
+    if(p.hp !== int(hp)) {
+      p.hp = int(hp);
+      updatePlayerHealth(p);
+    }
+  }
+});
+
+// "P-" Kill a player.
+socketRegister('P-', (data) => {
+  const [i, explode, immediate] = unpack(data);
+  const p = players[int(i)];
+  if (p) {
+    killPlayer(p, explode === '1', immediate === '1');
+  }
+});
+
+//// MISSILES
+
+// "M=" Sync the state of a missile.
+socketRegister('M=', (data) => {
+  const [id, x, y,dx, dy] = unpack(data);
+  const m = missiles.get(int(id));
+  if (m) {
+    m.x = f(x);
+    m.y = f(y);
+    m.dx = f(dx);
+    m.dy = f(dy);
+  }
+});
+
+// "M-" Remove a missile.
+socketRegister('M-', (data) => {
+  const [id] = unpack(data);
+  const m = missiles.get(int(id));
+  if (m) {
+    explodeMissile(m);
+  }
+});
+
+//// GRENADES
+
+// "G=" Sync the state of a grenade.
+socketRegister('G=', (data) => {
+  const [id, x, y,dx, dy] = unpack(data);
+  const g = grenades.get(int(id));
+  if (g) {
+    g.x = f(x);
+    g.y = f(y);
+    g.dx = f(dx);
+    g.dy = f(dy);
+  }
+});
+
+// "G-" Remove a missile.
+socketRegister('G-', (data) => {
+  const [id] = unpack(data);
+  const g = grenades.get(int(id));
+  if (g) {
+    explodeGrenade(g);
+  }
+});
+
+//// BLASTS
+
+// "B+" Add a new blast.
+socketRegister('B+', (data) => {
+  const [id, x, y, r] = unpack(data);
+  addBlast(int(id), f(x), f(y), f(r), 1);
+});
+
+//// FIRE WEAPONS
+
+// "F0" Fire bazooka
+socketRegister('F0', (data) => {
+  const [id, x, y, dir, aim, power] = unpack(data);
+  fireMissile(int(id), f(x), f(y), int(dir), f(aim), f(power));
+});
+
+// "F1" Fire shotgun.
+socketRegister('F1', (data) => {
+  const [id, x, y, dir, aim, seed] = unpack(data);
+  fireShotgun(int(id), f(x), f(y), int(dir), f(aim), int(seed));
+});
+
+// "F2" Fire shotgun.
+socketRegister('F2',(data) => {
+  const [id, x, y, dir, aim, seed] = unpack(data);
+  fireUzi(int(id), f(x), f(y), int(dir), f(aim), int(seed));
+});
+
+// "F3" Fire air strike.
+socketRegister('F3', (data) => {
+  const [id, x, tx, ty] = unpack(data);
+  fireAirStrike(int(id), f(x), f(tx), f(ty));
+});
+
+// "F4" Fire dynamite.
+socketRegister('F4', (data) => {
+  const [id, x, y] = unpack(data);
+  placeDynamite(int(id), f(x), f(y));
+});
+
+// "F5" Fire grenade.
+socketRegister('F5', (data) => {
+  const [id, x, y, dir, aim, power] = unpack(data);
+  fireGrenade(int(id), f(x), f(y), int(dir), f(aim), f(power));
+});
+
+// "F6" Fire unholy black cat.
+socketRegister('F6', (data) => {
+  const [id, x, y, dir, aim, power] = unpack(data);
+  fireHolyHandGrenade(int(id), f(x), f(y), int(dir), f(aim), f(power));
+});
+
+// "F7" Fire minigun.
+socketRegister('F7', (data) => {
+  const [id, x, y, dir, aim, seed] = unpack(data);
+  fireMinigun(int(id), f(x), f(y), int(dir), f(aim), int(seed));
+});
+
+// "F8" Fire homing missile.
+socketRegister('F8', (data) => {
+  const [id, x, y, dir, aim, power, tx, ty] = unpack(data);
+  fireHomingMissile(int(id), f(x), f(y), int(dir), f(aim), f(power), f(tx), f(ty));
+});
+
+// "F9" Fire cluster bomb.
+socketRegister('F9', (data) => {
+  const [id, x, y, dir, aim, power] = unpack(data);
+  fireClusterBomb(int(id), f(x), f(y), int(dir), f(aim), f(power));
+});
+
+// "FA" Fire nyan cat strike.
+socketRegister('FA', (data) => {
+  const [id, tx, ty, seed] = unpack(data);
+  fireNyanCats(int(id), f(tx), f(ty), int(seed));
+});
+
+// "FB" Fire cricket bat.
+socketRegister('FB', (data) => {
+  const [pid, x, y, dir, aim] = unpack(data);
+  fireCricketBat(int(pid), f(x), f(y), int(dir), f(aim));
+});
+
+// "FC" Fire charge (invisible missile).
+socketRegister('FC', (data) => {
+  const [id, x, y, dx, dy, power] = unpack(data);
+  fireCharge(int(id), f(x), f(y), f(dx), f(dy), f(power));
+});
+
+// ================================================================================================
+// ======== MULTIPLAYER: SEND =====================================================================
+// ================================================================================================
+
+//// CORE
+
+function socketActionJoin() {
+  socketAction('G0');
+}
+
+function socketActionAcceptJoin() {
+  socketAction('G1', JSON.stringify([heights, players]));
+}
+
+function socketActionGameState() {
+  socketAction('G2', pack(activeTeam, activePlayer, activeWeapon, windSpeed));
+}
+
+function socketActionEndTurn() {
+  socketAction('G3');
+}
+
+//// PLAYERS
+
+function socketActionSyncPlayer(p: Player) {
+  socketAction(pack('P=', p.i), pack(p.x, p.y, p.dx, p.dy, p.aim, p.dir, p.hp, p.ix, p.power), true);
+}
+
+function socketActionKillPlayer(p: Player, explode: boolean, immediately: boolean) {
+  socketAction(pack('P-', p.i), pack(+explode, +immediately));
+}
+
+//// MISSILES
+
+function socketActionSyncMissile(id: number, x: number, y: number, dx: number, dy: number) {
+  socketAction(pack('M=', id), pack(x, y, dx, dy));
+}
+
+function socketActionRemoveMissile(id: number) {
+  socketAction(pack('M-', id));
+}
+
+//// GRENADES
+
+function socketActionSyncGrenade(id: number, x: number, y: number, dx: number, dy: number) {
+  socketAction(pack('G=', id), pack(x, y, dx, dy));
+}
+
+function socketActionRemoveGrenade(id: number) {
+  socketAction(pack('G-', id));
+}
+
+//// BLASTS
+
+function socketActionAddBlast(id: number, x: number, y: number, r: number) {
+  socketAction(pack('B+', id), pack(x, y, r));
+}
+
+//// FIRE WEAPONS
+
+function socketActionAddMissile(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  socketAction('F0', pack(id, x, y, dir, aim, power));
+}
+
+function socketActionAddShotgun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  socketAction('F1', pack(id, x, y, dir, aim, seed));
+}
+
+function socketActionAddUzi(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  socketAction('F2', pack(id, x, y, dir, aim, seed));
+}
+
+function socketActionAddAirStrike(id: number, x: number, tx: number, ty: number) {
+  socketAction('F3', pack(id, x, tx, ty));
+}
+
+function socketActionAddDynamite(id: number, x: number, y: number) {
+  socketAction('F4', pack(id, x, y));
+}
+
+function socketActionAddGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  socketAction('F5', pack(id, x, y, dir, aim, power));
+}
+
+function socketActionAddHolyHandGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  socketAction('F6', pack(id, x, y, dir, aim, power));
+}
+
+function socketActionAddMinigun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
+  socketAction('F7', pack(id, x, y, dir, aim, seed));
+}
+
+function socketActionAddHomingMissile(id: number, x: number, y: number, dir: number, aim: number, power: number, tx: number, ty: number) {
+  socketAction('F8', pack(id, x, y, dir, aim, power, tx, ty));
+}
+
+function socketActionAddClusterBomb(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+  socketAction('F9', pack(id, x, y, dir, aim, power));
+}
+
+function socketActionAddNyanCats(id: number, tx: number, ty: number, seed: number) {
+  socketAction('FA', pack(id, tx, ty, seed));
+}
+
+function socketActionAddCricketBat(pid: number, x: number, y: number, dir: number, aim: number) {
+  socketAction('FB', pack(pid, x, y, dir, aim));
+}
+
+function socketActionAddCharge(id: number, x: number, y: number, dx: number, dy: number, power: number) {
+  socketAction(pack('FC', id), pack(x, y, dx, dy, power));
+}
+
+// ================================================================================================
+// ======== MULTIPLAYER: UTILS ==================================================================
+// ================================================================================================
+
+function f(input: string): number {
+  return parseFloat(input);
+}
+
+function int(input: string): number {
+  return parseInt(input, 10);
+}
+
+function pack(...args : (string | number)[]): string {
+  return [...args].join('|');
+}
+
+function unpack(input: string): string[] {
+  return input.split('|');
 }

@@ -90,7 +90,7 @@ export const WEAPONS: WeaponConfig[] = [
   {
     id: 11,
     label: 'CRICKET BAT',
-    icon: '',
+    icon: '<use href="#cricketbat" />',
     aim: true,
   },
 ];

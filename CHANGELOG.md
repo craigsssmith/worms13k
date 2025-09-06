@@ -1,3 +1,30 @@
+## Day 24 (6th September)
+
+- Fixed double exploding of grenades.
+- Better handling of multiplayer game setup and joining.
+- Avoid sending unnecessary messages to the relay server.
+- Added missing cricket bat image.
+- Added captions for turn changes.
+- Added player names and captions for deaths.
+
+> 12355 bytes (92.8%)
+
+## Day 23 (5th September)
+
+- Multiplayer: Joining and syncing.
+- Multiplayer: Active team, player, and weapon state.
+- Multiplayer: Support for all weapons.
+- Multiplayer: Killing players.
+- Multiplayer: Switching turns.
+
+> 11960 bytes (89.8%)
+
+## Day 22 (4th September)
+
+- Prototype for multiplayer.
+
+> 11171 bytes (83.9%)
+
 ## Day 21 (3rd September)
 
 - New weapon: Homing missiles!

@@ -187,6 +187,13 @@
               <path fill="#965353" d="m3 51 15-15h3l3-7 6-5 3 3-4 19-5 1-8 16-13-9a2 2 0 0 1 0-3Z"/>
             </g>
 
+            <!-- Cricket bat image, used only for the weapons menu. -->
+            <g id="cricketbat" transform="scale(0.75)">
+              <path fill="#5C6670" d="M2 57c0-1.3 5.7-7 17-17l5 5C14 56.3 8.3 62 7 62c-2 0-5-3-5-5Z"/>
+              <path fill="#454F58" d="m14 45 5-5 5 5-5 5z"/>
+              <path fill="#D3A97F" d="M16 36c0-4 29-33 33-33 2.7 0 5.7 1 9 3 2 3.3 3 6.3 3 9 0 4-29 33-33 33s-12-8-12-12Z"/>
+            </g>
+
             <!-- Hidden tracer line prototype. -->
             <line id="tracer" stroke="#fff" stroke-width="2" />
 
@@ -209,36 +216,6 @@
             </g> -->
 
           </defs>
-
-          <!-- Wobble effect that is applied to all of the terrain. -->
-          <!-- <filter id="wobble">
-            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="3" result="turbulence" />
-            <feDisplacementMap in2="turbulence" in="SourceGraphic" scale="5" xChannelSelector="R" yChannelSelector="G" />
-          </filter> -->
-
-          <!-- Soil texture that is applied to the top soil layer to make it look more natual. -->
-          <!-- <filter id="soil" primitiveUnits="userSpaceOnUse" x="0%" y="0%" width="100%" height="100%">
-            <feTurbulence id="soil-noise" type="fractalNoise" baseFrequency="0.01" numOctaves="3" />
-            <feComponentTransfer>
-              <feFuncR type="discrete" tableValues="0 0 1"/>
-              <feFuncG type="discrete" tableValues="0 0 0 1 1"/>
-              <feFuncB type="discrete" tableValues="0 1"/>
-            </feComponentTransfer>
-            <feColorMatrix values="1 0 0 0 0 -1 1 0 0 0 -1 -1 1 0 0 0 0 0 0 1"/>
-            <feColorMatrix values=".1 -.1 .1 0 .5 .1 -.1 .1 0 .5 .1 -.1 .1 0 .5 0 0 0 0 1"/>
-            <feComposite in="SourceGraphic" result="comp" operator="arithmetic" k1="1.7" />
-          </filter> -->
-
-          <!-- -->
-          <!-- <filter id="clouds">
-            <feTurbulence type="fractalNoise" baseFrequency="0.006 0.012" numOctaves="5" />
-            <feOffset dx="0" dy="0" id="clouds-offset" />
-            <feComponentTransfer>
-              <feFuncA type="gamma" exponent="1.1"/>
-            </feComponentTransfer>
-            <feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1 .4"/>
-            <feBlend in2="SourceGraphic"/>
-          </filter> -->
 
           <!-- Background sky layer. -->
           <path id="sky" fill="url(#fill-sky)" />
@@ -319,6 +296,9 @@
       <div id="windright"></div>
       <div id="winddiv"></div>
     </div>
+
+    <!-- UI: Messages. -->
+     <div id="msg"></div>
     
     <!-- Hidden game elements that are cloned as neeeded. -->
     <div style="display:none">

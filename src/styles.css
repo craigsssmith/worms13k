@@ -15,10 +15,6 @@ body {
   background: #0068E0;
 }
 
-/* svg {
-  transform: translateX(var(--cx));
-} */
-
 #viewport {
   width: 100vw;
   height: 100vh;
@@ -32,11 +28,12 @@ body {
   transform: translateX(var(--cx));
 }
 
-#weaponLabel, #wind, #hp, .weapon {
-  background: #222;
+#weaponLabel, #wind, #hp, #msg, .weapon {
+  background: #000;
   border: 2px solid var(--c, #fff);
-  box-shadow: 0 0 0 3px #222, inset 0 0 0 3px #222;
+  box-shadow: 0 0 0 3px #000, inset 0 0 0 3px #000;
   border-radius: 5px;
+  white-space: nowrap;
 }
 
 #weapons {
@@ -75,6 +72,15 @@ body {
   transform: translate(-50%, -150px);
 }
 
+#msg {
+  position: absolute;
+  bottom: 68px;
+  left: 50vw;
+  height: 14px;
+  padding: 6px;
+  transform: translate(-50%, 150px);
+}
+
 #wind {
   position: absolute;
   left: 50vw;
@@ -82,7 +88,7 @@ body {
   width: 398px;
   height: 26px;
   background: linear-gradient(to right, #f00, #ff0, #0f0, #ff0, #f00);
-  transform: translate(-50%, 100px);
+  transform: translate(-50%, 150px);
 }
 
 #wind * {
@@ -113,8 +119,8 @@ body {
   display: inline-block;
   width: 14px;
   height: 14px;
-  background: url(data:image/gif;base64,R0lGODdhAwEIAIAAAAAAAP///yH5BAgKAAAALAAAAAADAQgAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXOPAdLlRZFj7gYTGZlCFZPo2L1b1dxzZsNZu5RtSfh05svn8UJ5tLrYa7dW6WWs2fBlMh+U9PfffBPi0FVh4QJIFR0T2UXY3pDeIGDb3BBjJVESVKLPz1omn2RdXVEpIF3PZmaV1dbd2tfjWlykiaklrW9tSJ/h6mcqHwuPZM5mS5FRZYrIzp1ypm2wspYwlXadoqBsVilf1vd2tfYNNOBl9brY5BRkurFCLCo1oqn7o/fk8w8yOXN0FFDNRxbgAmQVmT7tdzqCBW5cizigg8lgZ1GROksaNEBw7evwIMqTIkSRLmjx5sgAAOw==);
-  background-size: auto 16px;
+  background: url(data:image/gif;base64,R0lGODdhEQEHAIAAAAAAAP///yH5BAgKAAAALAAAAAARAQcAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXAv+LA7S6LWBjYq14e+5zIWUTWUECc0ek8uYVir12ZwwJs2GRj+GZjVLBwpy2JWvqAqeR+nbuLA+tdcDaOfyxoLn9gU347UFV/SR42ckAylnpeAmN1d1OZimeDW6goS5wzeYYmjniOgYZjnadRhISbZo67kjGhbV9FdaaCYZWghFnMJ3wIPaY/QczIRcYsKbddt39xedN3a0TckpfVxru5xoOv14LpjnjE4FmJ1MRGONfOZHa18fV05Mj8BxBJMpWzNrlR5nloBo6WaqGjcx9yQ97GRQ27dGDQ9B8droKt+NFgUTFQAAOw==);
+  background-size: auto 14px;
   image-rendering: pixelated;
   margin-right: 2px;
 }
@@ -159,7 +165,7 @@ body {
   }
 }
 
-.started :is(#weapons, #weaponLabel, #wind) {
+.started :is(#weapons, #weaponLabel, #wind, #msg) {
   transform: translate(-50%, 0);
   transition: transform 1s ease-out;
 }
