@@ -1,3 +1,12 @@
+## Day 25 (7th September)
+
+- Optimised weapon data.
+- Optimised styles.
+- Optimised weapon assets by reusing and applying CSS filters
+- Tweaked vite config.
+
+> 12167 bytes (91.4%)
+
 ## Day 24 (6th September)
 
 - Fixed double exploding of grenades.

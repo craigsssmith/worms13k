@@ -28,7 +28,7 @@ export type Tracer = {
 
 export type Missile = Position & {
   id: number;
-  gone?: boolean;
+  // gone?: boolean;
   dx: number;
   dy: number;
   tx?: number;
@@ -58,6 +58,18 @@ export type Grenade = Position & {
   cluster: boolean;
   power: number;
 };
+
+// export type Grenade = [
+//   number, // 0: id
+//   number, // 1: x
+//   number, // 2: y
+//   number, // 3: dx
+//   number, // 4: dy
+//   number, // 5: ttl
+//   number, // 6: power
+//   number, // 7: unholy black cat?
+//   number, // 8: cluster bomb?
+// ];
 
 export type Player = Position & {
   id: number;
@@ -99,20 +111,14 @@ export type Raycast = Position & {
 };
 
 export type Camera = {
-  to: Position;
+  to: Position; // | [number, number, number, ...number[]];
   x: number;
   free: boolean;
   ttl: number;
 };
 
-export type WeaponConfig = {
-  id: number;
-  label: string;
-  icon: string;
-  power?: boolean;
-  aim?: boolean;
-  target?: boolean;
-  place?: boolean;
-};
+type WeaponIcon = (number | string | undefined)[];
+
+export type WeaponConfig = [number, number, number, number, number, string, WeaponIcon[]];
 
 export type AnimationConfig = [string, number, number][];

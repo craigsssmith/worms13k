@@ -5,13 +5,8 @@ import { zzfx } from './zzfx';
 import './styles.css';
 
 // Shortcuts.
-const docElemById = document.getElementById.bind(document);
-
-// Elements.
-const ID_PLAYERS = 'players';
-const ID_CROSSHAIRS = 'crosshairs';
-const ID_POWERBAR = 'pb';
-const ID_POWERBAR_MASK = 'pb-mask';
+const docElem = document.getElementById.bind(document);
+const docElems = (count: number) => new Array(count).fill(0).map((_, i) => docElem('id' + i)!);
 
 // Constants.
 const NAMES = 'ALICE|CLIVE|BORIS|RICHARD|MIKE|SARAH|PAULINE|HENRY'.split('|');
@@ -43,10 +38,28 @@ const vh = innerHeight;
 const ground = vh * 1.5;
 
 // Viewport element, inside of which the svg is scrolled.
-const viewport = docElemById('viewport')!;
-const world = docElemById('world')!;
-const particles = docElemById('particles')!;
-const glyph = docElemById('glyph')! as HTMLElement;
+const [
+  viewport,
+  world,
+  svg,
+  playersContainer,
+  particles,
+  objects,
+  crosshairs,
+  targetlock,
+  powerbar,
+  powerbarMask,
+  weapons,
+  weaponLabel,
+  windleft,
+  windright,
+  captions,
+  glyph,
+  explosion,
+  tracer,
+  logo,
+  sky,
+] = docElems(20);
 
 // Keep track of the holes and tunnels in the terrain.
 const holes: Hole[] = [];
@@ -62,19 +75,6 @@ let started = false;
 let master = false;
 let timeout: NodeJS.Timeout | null = null;
 
-// Various player and UI element.
-const playersContainer = docElemById(ID_PLAYERS)!;
-const crosshairs = docElemById(ID_CROSSHAIRS)!;
-const targetlock = docElemById('targetlock')!;
-const powerbar = docElemById(ID_POWERBAR)!;
-const powerbarMask = docElemById(ID_POWERBAR_MASK)!;
-const windleft = docElemById('windleft')!;
-const windright = docElemById('windright')!;
-const weaponLabel = docElemById('weaponLabel')!;
-const weapons = docElemById('weapons')!;
-const objects = docElemById('objects')!;
-const captions = docElemById('msg')!;
-
 // Create a series of players, 4 for each team.
 let players: Player[] = [];
 let activePlayer = 0;
@@ -85,11 +85,11 @@ let activeWeapon = 0;
 let windSpeed = 0;
 
 // Various game objects.
-let explosions: Explosion[] = [];
+let explosions: Map<number, Explosion> = new Map();
 let missiles: Map<number, Missile> = new Map();
 let grenades: Map<number, Grenade> = new Map();
 let dynamites: Map<number, Dynamite> = new Map();
-let tracers: Tracer[] = [];
+let tracers: Map<number, Tracer> = new Map();
 
 // Camera position, and object that it's locked to.
 let camera: Camera = {
@@ -121,7 +121,7 @@ addEventListener('mousemove', (event) => {
 
 // Fire targeted weapons on mouse click.
 addEventListener('mousedown', (event) => {
-  if (master && WEAPONS[activeWeapon].target && event.clientY > 100) {
+  if (master && WEAPONS[activeWeapon][3] && event.clientY > 100) { // 3 = target
     fireWeapon();
   }
 });
@@ -314,7 +314,7 @@ function getPlayerElement(p: Player) {
  */
 function getPlayerHealthElement(p: Player) {
   return getElement(world, 'hp', p.id + 1, (el: HTMLElement) => {
-    el.style.setProperty('--c', p.team === 0 ? '#f0f' : '#0ff')
+    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff')
   });
 }
 
@@ -323,7 +323,7 @@ function getPlayerHealthElement(p: Player) {
  */
 function getPlayerNameElement(p: Player) {
   return getElement(world, 'hp', p.id + 2, (el: HTMLElement) => {
-    el.style.setProperty('--c', p.team === 0 ? '#f0f' : '#0ff')
+    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff')
   });
 }
 
@@ -460,17 +460,20 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       updatePlayerAnimation(p);
     }
 
+    const px = ~~p.x;
+    const py = ~~p.y;
+
     // Display the player's health.
-    el2.style.setProperty('--x', `${p.x}px`);
-    el2.style.setProperty('--y', `${p.y - 60}px`);
+    sprop(el2, '--x', `${px}px`);
+    sprop(el2, '--y', `${py - 60}px`);
 
     // Display the player's name tag.
-    el3.style.setProperty('--x', `${p.x}px`);
-    el3.style.setProperty('--y', `${p.y - 82}px`);
+    sprop(el3, '--x', `${px}px`);
+    sprop(el3, '--y', `${py - 82}px`);
     
   } else {
-    el2.style.setProperty('--x', `-100px`);
-    el3.style.setProperty('--x', `-100px`);
+    sprop(el2, '--x', `-100px`);
+    sprop(el3, '--x', `-100px`);
   }
 }
 
@@ -486,8 +489,8 @@ function updatePlayerAnimation(p: Player) {
   const frame = anim[p.frame];
   const children = [...el1.children];
   attrNS(children[0], 'd', frame[0]);
-  attrNS(children[1], 'cx', '' + frame[1]);
-  attrNS(children[2], 'cx', '' + frame[2]);
+  attrNS(children[1], 'cx', frame[1]);
+  attrNS(children[2], 'cx', frame[2]);
 }
 
 /**
@@ -508,7 +511,7 @@ function updatePlayerHealth(p: Player) {
  * the aim angle based on user inputs, such as the up/down arrow keys.
  */
 function updateCrosshairs(delta: number) {
-  if (WEAPONS[activeWeapon].aim) {
+  if (WEAPONS[activeWeapon][2]) { // 2 = aim
     const p = players[activePlayer];
 
     if (p) {
@@ -554,11 +557,11 @@ function updatePowerbar(delta: number) {
   let width = 0;
 
   if (p) {
-    if (!p.hasFired && (w.aim || w.place)) {
+    if (!p.hasFired && (w[2] || w[4])) { // 2 = aim, 4 = place
       if (master) {
         const isFireKeyDown = keys.has('KeyP');
 
-        if (w.power) {
+        if (w[1]) { // 1 = power
           if (isFireKeyDown) {
             p.power = clamp(p.power + delta * 0.001, 0, 1);
           } else if (p.power > 0) {
@@ -583,7 +586,7 @@ function updatePowerbar(delta: number) {
     transform(powerbar, x, y, [angle, 0, 0]);
   }
 
-  attrNS(powerbarMask, 'width', '' + width);
+  attrNS(powerbarMask, 'width', width);
 }
 
 /**
@@ -725,18 +728,14 @@ function killPlayer(p: Player, explode: boolean, immediately: boolean) {
  * Update the appearance of all active explosions, and remove the ones that have finished.
  */
 function updateExplosions(delta: number) {
-  let i = explosions.length;
-
-  while (i--) {
-    const e = explosions[i];
-
+  for (const [id, e] of explosions) {
     e.ttl -= delta;
-    attrNS(e.el, 'opacity', e.ttl > 400 ? '1' : '' + (e.ttl / 400));
-    attrNS(e.el, 'r', '' + (e.r * (((500 - e.ttl) / 600) + 1)));
+    attrNS(e.el, 'opacity', e.ttl > 400 ? '1' : (e.ttl / 400));
+    attrNS(e.el, 'r', (e.r * (((500 - e.ttl) / 600) + 1)));
 
     if (e.ttl <= 0) {
       e.el.remove();
-      explosions.splice(i, 1);
+      explosions.delete(id);
     }
   }
 }
@@ -745,19 +744,18 @@ function updateExplosions(delta: number) {
  * Add a new explosion effect.
  */
 function addExplosion(x: number, y: number, r: number, hue: number | false = false) {
-  const el = docElemById('explosion')!.cloneNode(true) as Element;
+  const el = explosion.cloneNode(true) as Element;
   const fill = hue === false ? '#fff' : `hsl(${hue}, 100%, 50%)`;
   const ttl = hue === false ? 500 : 1000;
 
-  attrNS(el, 'cx', '' + x);
-  attrNS(el, 'cy', '' + y);
-  attrNS(el, 'r', '' + r);
-
+  attrNS(el, 'cx', x);
+  attrNS(el, 'cy', y);
+  attrNS(el, 'r', r);
   attrNS(el, 'fill', fill);
 
   particles.append(el);
 
-  explosions.push({ x, y, r, el, ttl });
+  explosions.set(getId(), { x, y, r, el, ttl });
 }
 
 /**
@@ -782,7 +780,14 @@ function initWeaponsUI() {
   for (let i = 0; i < WEAPONS.length; i++) {
     const el = document.createElement('div');
     el.className = 'weapon';
-    el.innerHTML = `<svg>${WEAPONS[i].icon}</svg>`;
+
+    let icon = '';
+    for (const [a,b,c,d,e] of WEAPONS[i][6]) {
+      const href = Number.isInteger(e) ? 'w' + e : e;
+      icon += `<g transform="translate(${a||0} ${b||0}) rotate(${c||0}) scale(${d||1})"><use href="#${href}" /></g>`;
+    }
+
+    el.innerHTML = `<svg>${icon}</svg>`;
 
     el.addEventListener('mousedown', function() {
       if (master) {
@@ -804,7 +809,7 @@ function initWeaponsUI() {
  * 
  */
 function updateWeaponUI() {
-  text(weaponLabel, WEAPONS[activeWeapon].label);
+  text(weaponLabel, WEAPONS[activeWeapon][5]);
 
   for (let i = 0; i < WEAPONS.length; i++) {
     weapons.children.item(i)?.classList.toggle('active', i === activeWeapon);
@@ -845,12 +850,7 @@ function fireWeapon() {
  * 
  */
 function getMissileElement(m: Missile) {
-  if (m.invis) {
-    return null;
-  }
-
-  const type = m.nyan ? 'nyancat' : m.homing ? 'homing' : 'missile';
-  return getElement(objects, type, m.id);
+  return m.invis ? null : getElement(objects, m.nyan ? 'w10' : m.homing ? 'w8' : 'w0', m.id);
 }
 
 /**
@@ -1108,17 +1108,13 @@ async function fireNyanCat(id: number, x: number, y: number, dx: number, dy: num
  * Update all tracer lines, and remove them once done with.
  */
 function updateTracers(delta: number) {
-  let i = tracers.length;
-
-  while (i--) {
-    const t = tracers[i];
-
+  for (const [id, t] of tracers) {
     t.ttl -= delta;
     t.el.style.opacity = '' + (t.ttl / 50);
 
     if (t.ttl <= 0) {
       t.el.remove();
-      tracers.splice(i, 1);
+      tracers.delete(id);
     }
   }
 }
@@ -1127,14 +1123,14 @@ function updateTracers(delta: number) {
  * Add a new tracer line, for a fired round.
  */
 function addTracer(x1: number, y1: number, x2: number, y2: number) {
-  const el = docElemById('tracer')!.cloneNode(true) as SVGLineElement;
-  attrNS(el, 'x1', '' + x1);
-  attrNS(el, 'y1', '' + y1);
-  attrNS(el, 'x2', '' + x2);
-  attrNS(el, 'y2', '' + y2);
+  const el = tracer!.cloneNode(true) as SVGLineElement;
+  attrNS(el, 'x1', x1);
+  attrNS(el, 'y1', y1);
+  attrNS(el, 'x2', x2);
+  attrNS(el, 'y2', y2);
   objects.appendChild(el);
 
-  tracers.push({ el, ttl: 50 });
+  tracers.set(getId(), { el, ttl: 50 });
 }
 
 /**
@@ -1230,7 +1226,7 @@ async function fireRound(id: number, x: number, y: number, angle: number, power:
  * 
  */
 function getDynamiteElement(d: Dynamite) {
-  return getElement(objects, 'dynamite', d.id, (el) => {
+  return getElement(objects, 'w4', d.id, (el) => {
     transform(el, d.x, d.y, [Math.random() * 10 - 5, 0, 0]);
   });
 }
@@ -1298,7 +1294,7 @@ function explodeDynamite(d: Dynamite) {
  * 
  */
 function getGrenadeElement(g: Grenade) {
-  const type = g.holy ? 'holy' : g.cluster ? 'clusterbomb' : 'grenade';
+  const type = g.holy ? 'w6' : g.cluster ? 'w9' : 'w5';
 
   return getElement(objects, type, g.id, (el) => {
     transform(el, g.x, g.y);
@@ -1530,7 +1526,7 @@ function updateCamera(delta: number) {
   const shake = Math.sin(camera.ttl / 15) * (camera.ttl / 20);
   
   const cx = base + shake;
-  viewport.style.setProperty('--cx', `${cx}px`);
+  sprop(viewport, '--cx', `${cx}px`);
 }
 
 /**
@@ -1727,12 +1723,12 @@ function initTerrain(home = false) {
   initSky();
 
   if (home) {
-    initWater('w6', 0);
-    initWater('w5', 20);
-    initWater('w4', 40);
-    initWater('w3', 60);
-    initWater('w2', 80);
-    initWater('w1', 100);
+    initWater('o6', 0);
+    initWater('o5', 20);
+    initWater('o4', 40);
+    initWater('o3', 60);
+    initWater('o2', 80);
+    initWater('o1', 100);
 
     addHoles(800, vh - 720, 80);
     addHoles(190, vh - 550, 80);
@@ -1744,7 +1740,7 @@ function initTerrain(home = false) {
  * Initialise a terrain layer.
  */
 function initTerrainLayer(id: string, home = false, offset: number): HTMLElement {
-  const layer = docElemById(id)!;
+  const layer = docElem(id)!;
   layer.innerHTML = '';
 
   if (home) {
@@ -1775,18 +1771,16 @@ function initTerrainLayer(id: string, home = false, offset: number): HTMLElement
  */
 function initMasks(home = false) {
   masks = [];
-  masks.push(initMask('m0', home, 10));
-  masks.push(initMask('m1', home, 0));
-  masks.push(initMask('m2', home, 0));
-  masks.push(initMask('m3', home, 15));
-  masks.push(initMask('m4', home, 25));
+  for (const offset of [10,0,0,15,25]) {
+    masks.push(initMask('m' + masks.length, home, offset));
+  }
 }
 
 /**
  * Initialise a mask layer.
  */
 function initMask(id: string, home = false, offset: number): HTMLElement {
-  const layer = docElemById(id)!;
+  const layer = docElem(id)!;
   
   const path = elemSVG('path');
   attrNS(path, 'd', `M-10,0 L${WORLD_SIZE},0 L${WORLD_SIZE},${vh + 10} L-10,${vh + 10} Z`);
@@ -1794,11 +1788,11 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
   layer.appendChild(path);
 
   if (home) {
-    const logo1 = docElemById('logo')!.cloneNode(true) as HTMLElement;
+    const logo1 = logo!.cloneNode(true) as HTMLElement;
     attrNS(logo1, 'transform', `translate(180, ${vh - 720 + offset}) scale(4.5)`);
     layer.appendChild(logo1);
 
-    const logo2 = docElemById('logo')!.cloneNode(true) as HTMLElement;
+    const logo2 = logo!.cloneNode(true) as HTMLElement;
     attrNS(logo2, 'transform', `translate(180, ${vh - 690}) scale(4.5)`);
     layer.appendChild(logo2);
   }
@@ -1810,17 +1804,17 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
  * Initialise the size of the water layers.
  */
 function initWater(id: string, offset: number) {
-  const rect = docElemById(id)!;
-  attrNS(rect, 'x', '' + (-offset * 2.7 + rngi(-40, 0)));
-  attrNS(rect, 'y', '' + (vh - 100 - offset));
-  attrNS(rect, 'width', '' + OCEAN_SIZE);
+  const rect = docElem(id)!;
+  attrNS(rect, 'x', (-offset * 2.7 + rngi(-40, 0)));
+  attrNS(rect, 'y', (vh - 100 - offset));
+  attrNS(rect, 'width', OCEAN_SIZE);
 }
 
 /**
  * Initialise the background sky layer.
  */
 function initSky() {
-  attr(docElemById('sky')!, 'd', `M0,0 L${WORLD_SIZE},0 L${WORLD_SIZE},${vh} L0,${vh} Z`);
+  attr(sky, 'd', `M0,0 L${WORLD_SIZE},0 L${WORLD_SIZE},${vh} L0,${vh} Z`);
 }
 
 /**
@@ -1893,9 +1887,9 @@ function addHoles(x: number, y: number, r: number) {
  */
 function addHole(layer: HTMLElement, x: number, y: number, r: number) {
   const circle = elemSVG('circle');
-  attrNS(circle, 'cx', '' + x);
-  attrNS(circle, 'cy', '' + y);
-  attrNS(circle, 'r', '' + r);
+  attrNS(circle, 'cx', x);
+  attrNS(circle, 'cy', y);
+  attrNS(circle, 'r', r);
   attrNS(circle, 'fill', 'black');
   layer.appendChild(circle);
 }
@@ -1907,11 +1901,9 @@ function addHole(layer: HTMLElement, x: number, y: number, r: number) {
 /**
  * Initialise the primary SVG wrapper.
  */
-function initSvg(): HTMLElement {
-  const svg = docElemById('svg')!;
-  attr(svg, 'width', '' + WORLD_SIZE);
-  attr(svg, 'height', '' + vh);
-  return svg;
+function initSvg() {
+  attr(svg, 'width', WORLD_SIZE);
+  attr(svg, 'height', vh);
 }
 
 // ================================================================================================
@@ -2059,15 +2051,22 @@ function perpendicular(v: Vector): Vector {
 /**
  * Set an attribute on an element.
  */
-function attr(element: Element, name: string, value: string) {
-  element.setAttribute(name, value);
+function attr(element: Element, name: string, value: string | number) {
+  element.setAttribute(name, '' + value);
 }
 
 /**
  * Set an attribute on aa namespaced (SVG) element.
  */
-function attrNS(element: Element | null, name: string, value: string) {
-  element?.setAttributeNS(null, name, value);
+function attrNS(element: Element | null, name: string, value: string | number) {
+  element?.setAttributeNS(null, name, '' + value);
+}
+
+/**
+ * 
+ */
+function sprop(element: HTMLElement, name: string, value: string | number) {
+  element.style.setProperty(name, '' + value);
 }
 
 /**
@@ -2091,7 +2090,7 @@ function getElement<E extends Element>(container: HTMLElement, key: string, id: 
   let el = elements[id] as E;
 
   if (!el) {
-    el = docElemById(key)!.cloneNode(true) as E;
+    el = docElem(key)!.cloneNode(true) as E;
     cb?.(el);
     container.appendChild(el);
     elements[id] = el;

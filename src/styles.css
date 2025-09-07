@@ -1,47 +1,58 @@
 * {
   margin: 0;
   padding: 0;
-  font-family: sans-serif;
-}
-
-* {
   cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNyIgaGVpZ2h0PSIzNiI+CiAgPHBhdGggZmlsbD0iI0ZGNDE4QiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIGQ9Im0yMCAyNSAyIDZjMCAyLTQgNC03IDQtMiAwLTMtMi01LTVsLTUgMmMtMyAwLTQtNi00LTE1QzEgOSAxIDMgMyAxYzItMSA3IDIgMTMgOCA2IDQgMTAgOSAxMCAxMXMtMiA0LTYgNVoiLz4KICA8cGF0aCBmaWxsPSIjRkY4NTlGIiBkPSJNNCA1YzEtMyAzLTEgNSAxLTUtMi01IDYtNCAyMkMzIDIxIDMgOCA0IDVaIi8+Cjwvc3ZnPg==') 6 5, pointer;
 }
 
-body {
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: #0068E0;
-}
-
-#viewport {
+body,
+#id0 /* #viewport */ {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-#world {
-  position: aboslute;
+#id1 /* #world */ { 
+  position: absolute;
   top: 0;
   left: 0;
   transform: translateX(var(--cx));
 }
 
-#weaponLabel, #wind, #hp, #msg, .weapon {
+/**
+ * Text panels
+ */
+
+#id11, /* #weaponLabel */
+#wind,
+#hp,
+#id14, /* #captions */
+.weapon {
   background: #000;
   border: 2px solid var(--c, #fff);
-  box-shadow: 0 0 0 3px #000, inset 0 0 0 3px #000;
+  box-shadow: 0 0 0 3px #000, inset 0 0 0 4px #000;
   border-radius: 5px;
   white-space: nowrap;
 }
 
-#weapons {
+/**
+ * Weapons
+ */
+
+#id10 /* #weapons */ {
   position: absolute;
   left: 50vw;
   top: 26px;
   transform: translate(-50%, -150px);
   white-space: nowrap;
+}
+
+#id11 /* #weaponLabel */ {
+  position: absolute;
+  top: 90px;
+  left: 50vw;
+  height: 14px;
+  padding: 6px;
+  transform: translate(-50%, -150px);
 }
 
 .weapon {
@@ -63,16 +74,11 @@ body {
   background: #8AE000;
 }
 
-#weaponLabel {
-  position: absolute;
-  top: 90px;
-  left: 50vw;
-  height: 14px;
-  padding: 6px;
-  transform: translate(-50%, -150px);
-}
+/**
+ * Messages/captions.
+ */
 
-#msg {
+#id14 /* #msg */ {
   position: absolute;
   bottom: 68px;
   left: 50vw;
@@ -80,6 +86,10 @@ body {
   padding: 6px;
   transform: translate(-50%, 150px);
 }
+
+/**
+ * UI: Wind direction bar.
+ */
 
 #wind {
   position: absolute;
@@ -99,12 +109,12 @@ body {
   background: #222;
 }
 
-#windleft {
-  left: 3px;
+#id12 /* #windleft */ {
+  left: 4px;
 }
 
-#windright {
-  right: 3px;
+#id13 /* #windright */ {
+  right: 4px;
 }
 
 #winddiv {
@@ -115,14 +125,18 @@ body {
   left: calc(50% - 1px);
 }
 
-#glyph {
+/**
+ * Text glyphs
+ */
+
+#id15 /* #glyph */ {
   display: inline-block;
   width: 14px;
   height: 14px;
   background: url(data:image/gif;base64,R0lGODdhEQEHAIAAAAAAAP///yH5BAgKAAAALAAAAAARAQcAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXAv+LA7S6LWBjYq14e+5zIWUTWUECc0ek8uYVir12ZwwJs2GRj+GZjVLBwpy2JWvqAqeR+nbuLA+tdcDaOfyxoLn9gU347UFV/SR42ckAylnpeAmN1d1OZimeDW6goS5wzeYYmjniOgYZjnadRhISbZo67kjGhbV9FdaaCYZWghFnMJ3wIPaY/QczIRcYsKbddt39xedN3a0TckpfVxru5xoOv14LpjnjE4FmJ1MRGONfOZHa18fV05Mj8BxBJMpWzNrlR5nloBo6WaqGjcx9yQ97GRQ27dGDQ9B8droKt+NFgUTFQAAOw==);
   background-size: auto 14px;
   image-rendering: pixelated;
-  margin-right: 2px;
+  border-right: 2px solid #000;
 }
 
 .flash {
@@ -137,18 +151,10 @@ body {
   padding: 4px;
   text-wrap: nowrap;
   border: none;
+  background: var(--c);
 }
 
-#hp::after {
-  display: block;
-  position: absolute;
-  content: '';
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--c);
-  border-radius: 3px;
+#hp #id15 /* #glyph */ {
   mix-blend-mode: multiply;
 }
 
@@ -157,15 +163,28 @@ body {
 }
 
 @keyframes waves {
-  from {
-    d: path('M0,0 Q40,50 80,15 Q120,50 160,0 L160,100 L0,100 Z');
-  }
-  to {
-    d: path('M0,15 Q40,50 80,0 Q120,50 160,15 L160,100 L0,100 Z');
-  }
+  from { d: path('M0,0 Q40,50 80,15 Q120,50 160,0 L160,100 L0,100 Z') }
+  to { d: path('M0,15 Q40,50 80,0 Q120,50 160,15 L160,100 L0,100 Z') }
 }
 
-.started :is(#weapons, #weaponLabel, #wind, #msg) {
+/* id10=#weapons, id11=#weaponLabel, id14=#captions */
+.started :is(#id10, #id11, #id14, #wind) {
   transform: translate(-50%, 0);
   transition: transform 1s ease-out;
+}
+
+#w8 {
+  filter: hue-rotate(220deg);
+}
+
+#w2 {
+  filter: saturate(0) brightness(2.5);
+}
+
+#id7 /* #targetlock */ {
+  filter: hue-rotate(250deg);
+}
+
+#hide {
+  display: none;
 }
