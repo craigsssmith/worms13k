@@ -232,7 +232,8 @@ function startMultiplayerGame() {
  */
 function joinMultiplayerGame() {
   socketInit();
-  socketActionJoin();
+  // socketActionJoin();
+  socketAction(0);
 }
 
 /**
@@ -434,7 +435,8 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       }
 
       // Send the player data to connected clients.
-      socketActionSyncPlayer(p);
+      // socketActionSyncPlayer(p);
+      socketAction(4, pack(p.x, p.y, p.dx, p.dy, p.aim, p.dir, p.hp, p.ix, p.power), p.i, true);
     }
 
     // Render the changes into the DOM.
@@ -635,7 +637,8 @@ function activateNextTeam() {
 
       if (socket) {
         master = false;
-        socketActionEndTurn();
+        // socketActionEndTurn();
+        socketAction(3);
       } else {
         caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
       }
@@ -680,7 +683,8 @@ function resetPlayers() {
  */
 function killPlayer(p: Player, explode: boolean, immediately: boolean) {
   if (master) {
-    socketActionKillPlayer(p, explode, immediately);
+    // socketActionKillPlayer(p, explode, immediately);
+    socketAction(5, pack(+explode, +immediately), p.i);
   }
 
   // Note: this timeout has to be 2001, so that it only fires AFTER the standard timeouts that
@@ -905,13 +909,15 @@ function updateMissiles(delta: number) {
 
     // Sync position to clients.
     if (master) {
-      socketActionSyncMissile(m.id, m.x, m.y, m.dx, m.dy);
+      // socketActionSyncMissile(m.id, m.x, m.y, m.dx, m.dy);
+      socketAction(6, pack(m.x, m.y, m.dx, m.dy), m.id);
     }
 
     // Check for collisions.
     // There is no player with index of '999', so this will check against all players.
     if (master && checkCollision(m.x, m.y, 999)) {
-      socketActionRemoveMissile(m.id);
+      // socketActionRemoveMissile(m.id);
+      socketAction(7, '', m.id);
       explodeMissile(m);
     }
 
@@ -950,7 +956,8 @@ function explodeMissile(m: Missile) {
  */
 function fireCharge(id: number, x: number, y: number, dx: number, dy: number, power: number) {
   if (master) {
-    socketActionAddCharge(id, x, y, dx, dy, power);
+    // socketActionAddCharge(id, x, y, dx, dy, power);
+    socketAction(23, pack(x, y, dx, dy, power), id);
   }
 
   missiles.set(id, { id, x, y, dx, dy, power, wind: false, grav: true, invis: true });
@@ -963,7 +970,8 @@ function fireCharge(id: number, x: number, y: number, dx: number, dy: number, po
  */
 function fireMissile(id: number, x: number, y: number, dir: number, aim: number, power: number) {
   if (master) {
-    socketActionAddMissile(id, x, y, dir, aim, power);
+    // socketActionAddMissile(id, x, y, dir, aim, power);
+    socketAction(11, pack(id, x, y, dir, aim, power));
   }
 
   const dx = Math.cos(aim) * power * 2 * dir;
@@ -990,7 +998,8 @@ function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: n
   const p = players[activePlayer];
 
   if (master) {
-    socketActionAddHomingMissile(id, x, y, dir, aim, power, tx, ty);
+    // socketActionAddHomingMissile(id, x, y, dir, aim, power, tx, ty);
+    socketAction(19, pack(id, x, y, dir, aim, power, tx, ty));
   }
 
   if (power === 0) {
@@ -1025,7 +1034,8 @@ function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: n
  */
 async function fireAirStrike(id: number, x: number, tx: number, ty: number) {
   if (master) {
-    socketActionAddAirStrike(id, x, tx, ty);
+    // socketActionAddAirStrike(id, x, tx, ty);
+    socketAction(14, pack(id, x, tx, ty));
   }
 
   const dir = x < tx ? 1 : -1;
@@ -1066,7 +1076,8 @@ async function fireAirStrikeRound(id: number, x: number, dx: number): Promise<vo
  */
 async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
   if (master) {
-    socketActionAddNyanCats(id, tx, ty, seed);
+    // socketActionAddNyanCats(id, tx, ty, seed);
+    socketAction(21, pack(id, tx, ty, seed));
   }
 
   lockCamera({ x: tx, y: ty });
@@ -1137,36 +1148,31 @@ function addTracer(x1: number, y1: number, x2: number, y2: number) {
  * Fire the shotgun, consisting of 2 high-powered rounds.
  */
 function fireShotgun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  if (master) {
-    socketActionAddShotgun(id, x, y, dir, aim, seed);
-  }
-  fireGun(id, x, y, dir, aim, seed, 1, [40, 45], 0.05, 1000);
+  fireGun(id, x, y, dir, aim, seed, 1, [40, 45], 0.05, 1000, 12);
 }
 
 /**
  * Fire the uzi, consisting of 10 low-powered rounds that sprad out more.
  */
 function fireUzi(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  if (master) {
-    socketActionAddUzi(id, x, y, dir, aim, seed);
-  }
-  fireGun(id, x, y, dir, aim, seed, 8, [12, 16], 0.1, 50);
+  fireGun(id, x, y, dir, aim, seed, 8, [12, 16], 0.1, 50, 13);
 }
 
 /**
  * Fire the uzi, consisting of 10 low-powered rounds that sprad out more.
  */
 function fireMinigun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  if (master) {
-    socketActionAddMinigun(id, x, y, dir, aim, seed);
-  }
-  fireGun(id, x, y, dir, aim, seed, 30, [16, 20], 0.125, 40);
+  fireGun(id, x, y, dir, aim, seed, 30, [16, 20], 0.125, 40, 18);
 }
 
 /**
  * Fire a generic gun.
  */
-async function fireGun(id: number, x: number, y: number, dir: number, aim: number, seed: number, rounds: number, power: [number, number], spread: number, delay: number) {
+async function fireGun(id: number, x: number, y: number, dir: number, aim: number, seed: number, rounds: number, power: [number, number], spread: number, delay: number, action: number) {
+  if (master) {
+    socketAction(action, pack(id, x, y, dir, aim, seed));
+  }
+
   const sx = x;
   const sy = y - 10;
   const angle = dir === 1 ? aim : Math.PI - aim;
@@ -1254,7 +1260,8 @@ function updateDynamites(delta: number) {
  */
 function placeDynamite(id: number, x: number, y: number ) {
   if (master) {
-    socketActionAddDynamite(id, x, y);
+    // socketActionAddDynamite(id, x, y);
+    socketAction(15, pack(id, x, y));
   }
 
   const sx = x;
@@ -1364,12 +1371,14 @@ function updateGrenades(delta: number) {
 
     // Sync position to clients.
     if (master) {
-      socketActionSyncGrenade(g.id, g.x, g.y, g.dx, g.dy);
+      // socketActionSyncGrenade(g.id, g.x, g.y, g.dx, g.dy);
+      socketAction(8, pack(g.x, g.y, g.dx, g.dy), g.id);
     }
 
     // Explode the grenade when the fuse has run down.
     if (master && g.ttl <= 0) {
-      socketActionRemoveGrenade(g.id);
+      // socketActionRemoveGrenade(g.id);
+      socketAction(9, '', g.id);
       explodeGrenade(g);
     }
   }
@@ -1380,8 +1389,10 @@ function updateGrenades(delta: number) {
  */
 function fireGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number, holy = false, cluster = false) {
   if (master) {
-    const fn = holy ? socketActionAddHolyHandGrenade : cluster ? socketActionAddClusterBomb : socketActionAddGrenade;
-    fn(id, x, y, dir, aim, power);
+    // const fn = holy ? socketActionAddHolyHandGrenade : cluster ? socketActionAddClusterBomb : socketActionAddGrenade;
+    // fn(id, x, y, dir, aim, power);
+    const type = holy ? 17 : cluster ? 20 : 16;
+    socketAction(type, pack(id, x, y, dir, aim, power));
   }
 
   const sx = x;
@@ -1452,7 +1463,8 @@ function explodeGrenade(g: Grenade) {
  */
 function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: number) {
   if (master) {
-    socketActionAddCricketBat(pid, x, y, dir, aim);
+    // socketActionAddCricketBat(pid, x, y, dir, aim);
+    socketAction(22, pack(pid, x, y, dir, aim));
 
     for (let i = 0; i < players.length; i++) {
       const p2 = players[i];
@@ -1788,11 +1800,11 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
   layer.appendChild(path);
 
   if (home) {
-    const logo1 = logo!.cloneNode(true) as HTMLElement;
+    const logo1 = logo.cloneNode(true) as HTMLElement;
     attrNS(logo1, 'transform', `translate(180, ${vh - 720 + offset}) scale(4.5)`);
     layer.appendChild(logo1);
 
-    const logo2 = logo!.cloneNode(true) as HTMLElement;
+    const logo2 = logo.cloneNode(true) as HTMLElement;
     attrNS(logo2, 'transform', `translate(180, ${vh - 690}) scale(4.5)`);
     layer.appendChild(logo2);
   }
@@ -2178,7 +2190,7 @@ let socket: WebSocket | null = null;
 let syncttl = 0;
 let pending: Map<string, string> = new Map();
 let sent: Map<string, string> = new Map();
-let callbacks: Record<string, (data: string) => void> = {};
+let callbacks: ((data: string) => void)[] = [];
 
 /**
  * 
@@ -2189,7 +2201,7 @@ function updateStateSync(delta: number) {
 
     if (syncttl >= 50 && pending.size > 0) {
       syncttl -= 50;
-      socketSend([...pending.values()].join('\n'));
+      socket.send([...pending.values()].join('\n'));
       pending.clear();
     }
   }
@@ -2206,7 +2218,8 @@ function socketInit() {
 /**
  * 
  */
-function socketAction(prefix: string, data = '', cache = false) {
+function socketAction(type: number, data = '', id: number | null = null, cache = false) {
+  const prefix = (type < 10 ? '0' : '') + type + (id !== null ? '|' + id : '');
   const msg = prefix + '|' + data;
 
   if (sent.get(prefix) !== msg) {
@@ -2221,22 +2234,16 @@ function socketAction(prefix: string, data = '', cache = false) {
 /**
  * 
  */
-function socketSend(data: string) {
-  if (socket) {
-    socket.send(data);
-  }
+function socketActionGameState() {
+  socketAction(2, pack(activeTeam, activePlayer, activeWeapon, windSpeed));
 }
 
 /**
  * 
  */
-function socketRegister(prefix: string, cb: (data: string) => void) {
-  callbacks[prefix] = cb;
+function socketActionAddBlast(id: number, x: number, y: number, r: number) {
+  socketAction(10, pack(x, y, r), id);
 }
-
-// ================================================================================================
-// ======== MULTIPLAYER: RECEIVE ==================================================================
-// ================================================================================================
 
 /**
  * 
@@ -2245,25 +2252,33 @@ function socketReceive(event: MessageEvent<string>) {
   const actions = event.data.split('\n');
   
   for (const action of actions) {
-    const code = action.substring(0, 2);
+    const code = parseInt(action.substring(0, 2));
     const data = action.substring(3);
     const cb = callbacks[code];
     cb?.(data);
   }
 }
 
+/**
+ * 
+ */
+function socketRegister(cb: (data: string) => void) {
+  callbacks.push(cb);
+}
+
 //// CORE
 
-// "G0" Request from other client to join.
-socketRegister('G0', () => {
+// "00" Request from other client to join.
+socketRegister(() => {
   if (started) {
-    socketActionAcceptJoin();
+    // socketActionAcceptJoin();
+    socketAction(1, JSON.stringify([heights, players]));
     socketActionGameState();
   }
 });
 
-// "G1" Response from master, accepting join request.
-socketRegister('G1', (data) => {
+// "01" Response from master, accepting join request.
+socketRegister((data) => {
   const json = JSON.parse(data);
   heights = json[0];
   players = json[1];
@@ -2275,8 +2290,8 @@ socketRegister('G1', (data) => {
   }
 });
 
-// "G2" Receive game state.
-socketRegister('G2', (data) => {
+// "02" Receive game state.
+socketRegister((data) => {
   const values = unpack(data);
   activeTeam = int(values[0]);
   activePlayer = int(values[1]);
@@ -2286,16 +2301,16 @@ socketRegister('G2', (data) => {
   updateWeaponUI();
 });
 
-// "G3" End of turn.
-socketRegister('G3', () => {
+// "03" End of turn.
+socketRegister(() => {
   master = true;
   caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
 });
 
 //// PLAYERS
 
-// "P=" Sync the state of a player.
-socketRegister('P=', (data) => {
+// "04" Sync the state of a player.
+socketRegister((data) => {
   const [i, x, y, dx, dy, aim, dir, hp, ix, power] = unpack(data);
   const p = players[int(i)];
   if (p) {
@@ -2315,8 +2330,8 @@ socketRegister('P=', (data) => {
   }
 });
 
-// "P-" Kill a player.
-socketRegister('P-', (data) => {
+// "05" Kill a player.
+socketRegister((data) => {
   const [i, explode, immediate] = unpack(data);
   const p = players[int(i)];
   if (p) {
@@ -2326,8 +2341,8 @@ socketRegister('P-', (data) => {
 
 //// MISSILES
 
-// "M=" Sync the state of a missile.
-socketRegister('M=', (data) => {
+// "06" Sync the state of a missile.
+socketRegister((data) => {
   const [id, x, y,dx, dy] = unpack(data);
   const m = missiles.get(int(id));
   if (m) {
@@ -2338,8 +2353,8 @@ socketRegister('M=', (data) => {
   }
 });
 
-// "M-" Remove a missile.
-socketRegister('M-', (data) => {
+// "07" Remove a missile.
+socketRegister((data) => {
   const [id] = unpack(data);
   const m = missiles.get(int(id));
   if (m) {
@@ -2349,8 +2364,8 @@ socketRegister('M-', (data) => {
 
 //// GRENADES
 
-// "G=" Sync the state of a grenade.
-socketRegister('G=', (data) => {
+// "08" Sync the state of a grenade.
+socketRegister((data) => {
   const [id, x, y,dx, dy] = unpack(data);
   const g = grenades.get(int(id));
   if (g) {
@@ -2361,8 +2376,8 @@ socketRegister('G=', (data) => {
   }
 });
 
-// "G-" Remove a missile.
-socketRegister('G-', (data) => {
+// "09" Remove a missile.
+socketRegister((data) => {
   const [id] = unpack(data);
   const g = grenades.get(int(id));
   if (g) {
@@ -2372,203 +2387,91 @@ socketRegister('G-', (data) => {
 
 //// BLASTS
 
-// "B+" Add a new blast.
-socketRegister('B+', (data) => {
+// "10" Add a new blast.
+socketRegister((data) => {
   const [id, x, y, r] = unpack(data);
   addBlast(int(id), f(x), f(y), f(r), 1);
 });
 
 //// FIRE WEAPONS
 
-// "F0" Fire bazooka
-socketRegister('F0', (data) => {
+// "11" Fire bazooka
+socketRegister((data) => {
   const [id, x, y, dir, aim, power] = unpack(data);
   fireMissile(int(id), f(x), f(y), int(dir), f(aim), f(power));
 });
 
-// "F1" Fire shotgun.
-socketRegister('F1', (data) => {
+// "12" Fire shotgun.
+socketRegister((data) => {
   const [id, x, y, dir, aim, seed] = unpack(data);
   fireShotgun(int(id), f(x), f(y), int(dir), f(aim), int(seed));
 });
 
-// "F2" Fire shotgun.
-socketRegister('F2',(data) => {
+// "13" Fire shotgun.
+socketRegister((data) => {
   const [id, x, y, dir, aim, seed] = unpack(data);
   fireUzi(int(id), f(x), f(y), int(dir), f(aim), int(seed));
 });
 
-// "F3" Fire air strike.
-socketRegister('F3', (data) => {
+// "14" Fire air strike.
+socketRegister((data) => {
   const [id, x, tx, ty] = unpack(data);
   fireAirStrike(int(id), f(x), f(tx), f(ty));
 });
 
-// "F4" Fire dynamite.
-socketRegister('F4', (data) => {
+// "15" Fire dynamite.
+socketRegister((data) => {
   const [id, x, y] = unpack(data);
   placeDynamite(int(id), f(x), f(y));
 });
 
-// "F5" Fire grenade.
-socketRegister('F5', (data) => {
+// "16" Fire grenade.
+socketRegister((data) => {
   const [id, x, y, dir, aim, power] = unpack(data);
   fireGrenade(int(id), f(x), f(y), int(dir), f(aim), f(power));
 });
 
-// "F6" Fire unholy black cat.
-socketRegister('F6', (data) => {
+// "17" Fire unholy black cat.
+socketRegister((data) => {
   const [id, x, y, dir, aim, power] = unpack(data);
   fireHolyHandGrenade(int(id), f(x), f(y), int(dir), f(aim), f(power));
 });
 
-// "F7" Fire minigun.
-socketRegister('F7', (data) => {
+// "18" Fire minigun.
+socketRegister((data) => {
   const [id, x, y, dir, aim, seed] = unpack(data);
   fireMinigun(int(id), f(x), f(y), int(dir), f(aim), int(seed));
 });
 
-// "F8" Fire homing missile.
-socketRegister('F8', (data) => {
+// "19" Fire homing missile.
+socketRegister((data) => {
   const [id, x, y, dir, aim, power, tx, ty] = unpack(data);
   fireHomingMissile(int(id), f(x), f(y), int(dir), f(aim), f(power), f(tx), f(ty));
 });
 
-// "F9" Fire cluster bomb.
-socketRegister('F9', (data) => {
+// "20" Fire cluster bomb.
+socketRegister((data) => {
   const [id, x, y, dir, aim, power] = unpack(data);
   fireClusterBomb(int(id), f(x), f(y), int(dir), f(aim), f(power));
 });
 
-// "FA" Fire nyan cat strike.
-socketRegister('FA', (data) => {
+// "21" Fire nyan cat strike.
+socketRegister((data) => {
   const [id, tx, ty, seed] = unpack(data);
   fireNyanCats(int(id), f(tx), f(ty), int(seed));
 });
 
-// "FB" Fire cricket bat.
-socketRegister('FB', (data) => {
+// "22" Fire cricket bat.
+socketRegister((data) => {
   const [pid, x, y, dir, aim] = unpack(data);
   fireCricketBat(int(pid), f(x), f(y), int(dir), f(aim));
 });
 
-// "FC" Fire charge (invisible missile).
-socketRegister('FC', (data) => {
+// "23" Fire charge (invisible missile).
+socketRegister((data) => {
   const [id, x, y, dx, dy, power] = unpack(data);
   fireCharge(int(id), f(x), f(y), f(dx), f(dy), f(power));
 });
-
-// ================================================================================================
-// ======== MULTIPLAYER: SEND =====================================================================
-// ================================================================================================
-
-//// CORE
-
-function socketActionJoin() {
-  socketAction('G0');
-}
-
-function socketActionAcceptJoin() {
-  socketAction('G1', JSON.stringify([heights, players]));
-}
-
-function socketActionGameState() {
-  socketAction('G2', pack(activeTeam, activePlayer, activeWeapon, windSpeed));
-}
-
-function socketActionEndTurn() {
-  socketAction('G3');
-}
-
-//// PLAYERS
-
-function socketActionSyncPlayer(p: Player) {
-  socketAction(pack('P=', p.i), pack(p.x, p.y, p.dx, p.dy, p.aim, p.dir, p.hp, p.ix, p.power), true);
-}
-
-function socketActionKillPlayer(p: Player, explode: boolean, immediately: boolean) {
-  socketAction(pack('P-', p.i), pack(+explode, +immediately));
-}
-
-//// MISSILES
-
-function socketActionSyncMissile(id: number, x: number, y: number, dx: number, dy: number) {
-  socketAction(pack('M=', id), pack(x, y, dx, dy));
-}
-
-function socketActionRemoveMissile(id: number) {
-  socketAction(pack('M-', id));
-}
-
-//// GRENADES
-
-function socketActionSyncGrenade(id: number, x: number, y: number, dx: number, dy: number) {
-  socketAction(pack('G=', id), pack(x, y, dx, dy));
-}
-
-function socketActionRemoveGrenade(id: number) {
-  socketAction(pack('G-', id));
-}
-
-//// BLASTS
-
-function socketActionAddBlast(id: number, x: number, y: number, r: number) {
-  socketAction(pack('B+', id), pack(x, y, r));
-}
-
-//// FIRE WEAPONS
-
-function socketActionAddMissile(id: number, x: number, y: number, dir: number, aim: number, power: number) {
-  socketAction('F0', pack(id, x, y, dir, aim, power));
-}
-
-function socketActionAddShotgun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  socketAction('F1', pack(id, x, y, dir, aim, seed));
-}
-
-function socketActionAddUzi(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  socketAction('F2', pack(id, x, y, dir, aim, seed));
-}
-
-function socketActionAddAirStrike(id: number, x: number, tx: number, ty: number) {
-  socketAction('F3', pack(id, x, tx, ty));
-}
-
-function socketActionAddDynamite(id: number, x: number, y: number) {
-  socketAction('F4', pack(id, x, y));
-}
-
-function socketActionAddGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number) {
-  socketAction('F5', pack(id, x, y, dir, aim, power));
-}
-
-function socketActionAddHolyHandGrenade(id: number, x: number, y: number, dir: number, aim: number, power: number) {
-  socketAction('F6', pack(id, x, y, dir, aim, power));
-}
-
-function socketActionAddMinigun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
-  socketAction('F7', pack(id, x, y, dir, aim, seed));
-}
-
-function socketActionAddHomingMissile(id: number, x: number, y: number, dir: number, aim: number, power: number, tx: number, ty: number) {
-  socketAction('F8', pack(id, x, y, dir, aim, power, tx, ty));
-}
-
-function socketActionAddClusterBomb(id: number, x: number, y: number, dir: number, aim: number, power: number) {
-  socketAction('F9', pack(id, x, y, dir, aim, power));
-}
-
-function socketActionAddNyanCats(id: number, tx: number, ty: number, seed: number) {
-  socketAction('FA', pack(id, tx, ty, seed));
-}
-
-function socketActionAddCricketBat(pid: number, x: number, y: number, dir: number, aim: number) {
-  socketAction('FB', pack(pid, x, y, dir, aim));
-}
-
-function socketActionAddCharge(id: number, x: number, y: number, dx: number, dy: number, power: number) {
-  socketAction(pack('FC', id), pack(x, y, dx, dy, power));
-}
 
 // ================================================================================================
 // ======== MULTIPLAYER: UTILS ==================================================================

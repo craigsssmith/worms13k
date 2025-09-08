@@ -4,8 +4,10 @@
 - Optimised styles.
 - Optimised weapon assets by reusing and applying CSS filters
 - Tweaked vite config.
+- Refactored element capture IDs and code.
+- Removed socket action code strings.
 
-> 12167 bytes (91.4%)
+> 12076 bytes (90.7%)
 
 ## Day 24 (6th September)
 
