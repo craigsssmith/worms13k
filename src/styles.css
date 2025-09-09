@@ -1,32 +1,33 @@
 * {
   margin: 0;
   padding: 0;
-  cursor: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNyIgaGVpZ2h0PSIzNiI+CiAgPHBhdGggZmlsbD0iI0ZGNDE4QiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIGQ9Im0yMCAyNSAyIDZjMCAyLTQgNC03IDQtMiAwLTMtMi01LTVsLTUgMmMtMyAwLTQtNi00LTE1QzEgOSAxIDMgMyAxYzItMSA3IDIgMTMgOCA2IDQgMTAgOSAxMCAxMXMtMiA0LTYgNVoiLz4KICA8cGF0aCBmaWxsPSIjRkY4NTlGIiBkPSJNNCA1YzEtMyAzLTEgNSAxLTUtMi01IDYtNCAyMkMzIDIxIDMgOCA0IDVaIi8+Cjwvc3ZnPg==') 6 5, pointer;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: linear-gradient(#0068E0, #00B2E0) fixed;
 }
 
 body,
 #id0 /* #viewport */ {
   width: 100vw;
   height: 100vh;
-  overflow: hidden;
 }
 
-#id1 /* #world */ { 
+#id1, #id2, #id19, #id20, #hp /* #world, #svg, #svg2 */ {
   position: absolute;
   top: 0;
   left: 0;
-  transform: translateX(var(--cx));
 }
 
 /**
  * Text panels
  */
 
-#id11, /* #weaponLabel */
-#wind,
-#hp,
-#id14, /* #captions */
-.weapon {
+#id11, #wind, #hp, #id14, .weapon /* #weaponLabel, #captions */ {
   background: #000;
   border: 2px solid var(--c, #fff);
   box-shadow: 0 0 0 3px #000, inset 0 0 0 4px #000;
@@ -35,21 +36,26 @@ body,
 }
 
 /**
+ * User interface
+ */
+
+#id10, #id11, #id14, #wind /* #weapons, #weaponLabel, #captions */ {
+  position: fixed;
+  left: 50vw;
+}
+
+/**
  * Weapons
  */
 
 #id10 /* #weapons */ {
-  position: absolute;
-  left: 50vw;
   top: 26px;
   transform: translate(-50%, -150px);
   white-space: nowrap;
 }
 
 #id11 /* #weaponLabel */ {
-  position: absolute;
   top: 90px;
-  left: 50vw;
   height: 14px;
   padding: 6px;
   transform: translate(-50%, -150px);
@@ -79,9 +85,7 @@ body,
  */
 
 #id14 /* #msg */ {
-  position: absolute;
   bottom: 68px;
-  left: 50vw;
   height: 14px;
   padding: 6px;
   transform: translate(-50%, 150px);
@@ -92,8 +96,6 @@ body,
  */
 
 #wind {
-  position: absolute;
-  left: 50vw;
   bottom: 26px;
   width: 398px;
   height: 26px;
@@ -144,14 +146,12 @@ body,
 }
 
 #hp {
-  position: absolute;
-  top: var(--y);
-  left: var(--x);
-  transform: translate(-50%, -50%);
+  transform: translate(var(--x), var(--y));
   padding: 4px;
   text-wrap: nowrap;
   border: none;
   background: var(--c);
+  will-change: transform;
 }
 
 #hp #id15 /* #glyph */ {
@@ -181,8 +181,8 @@ body,
   filter: saturate(0) brightness(2.5);
 }
 
-#id7 /* #targetlock */ {
-  filter: hue-rotate(250deg);
+#id6 /* #targetlock */ {
+  filter: hue-rotate(-250deg);
 }
 
 #hide {

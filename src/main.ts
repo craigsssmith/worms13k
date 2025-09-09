@@ -12,10 +12,12 @@ const docElems = (count: number) => new Array(count).fill(0).map((_, i) => docEl
 const NAMES = 'ALICE|CLIVE|BORIS|RICHARD|MIKE|SARAH|PAULINE|HENRY'.split('|');
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \'!';
 const HALF_PI = Math.PI / 2;
-const WORLD_SIZE = 8000;
+const WW = 8000;
+const WH = 2000;
+const GROUND = WH + 400;
 const OCEAN_SIZE = 10000;
 const WORLD_SCALE = 0.00075;
-const NOISE_AMPLITUDE = 1000;
+const NOISE_AMPLITUDE = 1500;
 const AIR_RESISTANCE = 0.002;
 const PLAYER_GRAVITY = 0.002;
 const MISSILE_GRAVITY = 0.001;
@@ -33,33 +35,11 @@ const simplex = createNoise2D(rngf);
 let time = 0;
 
 // Viewport dimensions.
-const vw = innerWidth;
-const vh = innerHeight;
-const ground = vh * 1.5;
+let vw = innerWidth;
+let vh = innerHeight;
 
 // Viewport element, inside of which the svg is scrolled.
-const [
-  viewport,
-  world,
-  svg,
-  playersContainer,
-  particles,
-  objects,
-  crosshairs,
-  targetlock,
-  powerbar,
-  powerbarMask,
-  weapons,
-  weaponLabel,
-  windleft,
-  windright,
-  captions,
-  glyph,
-  explosion,
-  tracer,
-  logo,
-  sky,
-] = docElems(20);
+const [viewport, world, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names] = docElems(22);
 
 // Keep track of the holes and tunnels in the terrain.
 const holes: Hole[] = [];
@@ -93,9 +73,10 @@ let tracers: Map<number, Tracer> = new Map();
 
 // Camera position, and object that it's locked to.
 let camera: Camera = {
-  x: 0,
-  to: { x: 0, y: 0 },
-  free: false,
+  x: 850,
+  y: WH,
+  to: { x: 850, y: WH },
+  free: true,
   ttl: 0,
 };
 
@@ -111,7 +92,7 @@ setTimeout(initGame);
 // ================================================================================================
 
 const keys = new Set<string>();
-const mouse = { x: 0, y: 0, over: false };
+const mouse = { x: vw / 2, y: vh / 2, over: false };
 
 // Keep track of the mouse position.
 addEventListener('mousemove', (event) => {
@@ -128,6 +109,10 @@ addEventListener('mousedown', (event) => {
 
 // Keep track of which keyboard buttons are pressed.
 addEventListener('keydown', (event) => {
+  if (event.keyCode === 32) {
+    event.preventDefault();
+  }
+
   if (started) {
     keys.add(event.code);
     keys.add(event.key);
@@ -153,15 +138,21 @@ addEventListener('keyup', (event) => {
 
 // Reload the game if the window resizes. It's a hack, but all I have time for right now.
 addEventListener('resize', () => {
-  location.reload();
+  vw = innerWidth;
+  vh = innerHeight;
 });
 
-//
+// Prevent scrolling via the mouse wheel, as we're controlling it ourselves.
+addEventListener('wheel', (event) => {
+  event.preventDefault();
+}, { passive: false });
+
+// track when the mouse enters the page.
 document.body.addEventListener('mouseenter', () => {
   mouse.over = true;
 });
 
-//
+// track when the mouse leaves the page.
 document.body.addEventListener('mouseleave', () => {
   mouse.over = false;
 });
@@ -281,7 +272,7 @@ function initPlayers() {
     const p = initPlayer(i);
     players.push(p);
     updatePlayerHealth(p);
-    text(getPlayerNameElement(p), NAMES[i]);
+    text(getPlayerInfoElement(p, 2), NAMES[i]);
   }
 }
 
@@ -291,8 +282,8 @@ function initPlayers() {
 function initPlayer(i: number): Player {
   let x = -1;
   while (x === -1) {
-    const cx = Math.random() * (WORLD_SIZE - 500) + 250;
-    if (getTerrainHeight(cx) < vh - 110) {
+    const cx = Math.random() * (WW - 500) + 250;
+    if (getTerrainHeight(cx) < WH - 110) {
       x = cx;
     }
   }
@@ -313,18 +304,9 @@ function getPlayerElement(p: Player) {
 /**
  * 
  */
-function getPlayerHealthElement(p: Player) {
-  return getElement(world, 'hp', p.id + 1, (el: HTMLElement) => {
-    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff')
-  });
-}
-
-/**
- * 
- */
-function getPlayerNameElement(p: Player) {
-  return getElement(world, 'hp', p.id + 2, (el: HTMLElement) => {
-    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff')
+function getPlayerInfoElement(p: Player, offset: number) {
+  return getElement(names, 'hp', p.id + offset, (el: HTMLElement) => {
+    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff');
   });
 }
 
@@ -333,8 +315,8 @@ function getPlayerNameElement(p: Player) {
  * For the active player, use the keyboard input to move the player too.
  */
 function updatePlayers(delta: number) {
-  for (let i = 0; i < players.length; i++) {
-    updatePlayer(players[i], i === activePlayer, delta);
+  for (let p of players) {
+    updatePlayer(p, p.i === activePlayer, delta);
   }
 }
 
@@ -344,8 +326,8 @@ function updatePlayers(delta: number) {
  */
 function updatePlayer(p: Player, active: boolean, delta: number) {
   const el1 = getPlayerElement(p);
-  const el2 = getPlayerHealthElement(p) as HTMLElement;
-  const el3 = getPlayerNameElement(p) as HTMLElement;
+  const el2 = getPlayerInfoElement(p, 1) as HTMLElement;
+  const el3 = getPlayerInfoElement(p, 2) as HTMLElement;
 
   if (!p.gone) {
     // const horizontal = master && active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
@@ -356,6 +338,11 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       // Keyboard input.
       p.ix = active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
       p.jumping = !!(active ? keys.has('Space') && p.onGround : false);
+
+      // Snap back to the player when they move.
+      if (p.ix !== 0) {
+        unlockCamera();
+      }
 
       // Update the velocity.
       p.dx = p.dx + (p.onGround ? p.ix * 0.1 : 0);
@@ -430,7 +417,7 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       }
 
       // If the player falls into the ocean, mark them as dead and gone immediately.
-      if (master && p.y >= vh - 100) {
+      if (master && p.y >= WH - 100) {
         killPlayer(p, false, true);
       }
 
@@ -466,16 +453,18 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
     const py = ~~p.y;
 
     // Display the player's health.
-    sprop(el2, '--x', `${px}px`);
-    sprop(el2, '--y', `${py - 60}px`);
+    let x1 = px - el2.children.length * 8 - 4;
+    let y1 = py - 75;
+    el2.style.transform = `translate(${x1}px, ${y1}px)`;
 
     // Display the player's name tag.
-    sprop(el3, '--x', `${px}px`);
-    sprop(el3, '--y', `${py - 82}px`);
+    let x2 = px - el3.children.length * 8 - 4;
+    let y2 = py - 97;
+    el3.style.transform = `translate(${x2}px, ${y2}px)`;
     
   } else {
-    sprop(el2, '--x', `-100px`);
-    sprop(el3, '--x', `-100px`);
+    el2.style.display = 'none';
+    el3.style.display = 'none';
   }
 }
 
@@ -499,7 +488,7 @@ function updatePlayerAnimation(p: Player) {
  * 
  */
 function updatePlayerHealth(p: Player) {
-  const el2 = getPlayerHealthElement(p);
+  const el2 = getPlayerInfoElement(p, 1);
 
   text(el2, '' + p.hp);
 
@@ -519,6 +508,11 @@ function updateCrosshairs(delta: number) {
     if (p) {
       if (master) {
         const vertical = +keys.has('KeyS') - +keys.has('KeyW');
+
+        if (vertical !== 0) {
+          unlockCamera();
+        }
+
         p.aim = clamp(p.aim + (vertical * delta * 0.001), -HALF_PI, HALF_PI);
       }
 
@@ -699,7 +693,7 @@ function killPlayer(p: Player, explode: boolean, immediately: boolean) {
     const el1 = getPlayerElement(p);
     attrNS(el1, 'opacity', '0');
 
-    const el2 = getPlayerHealthElement(p);
+    const el2 = getPlayerInfoElement(p, 1);
     (el2 as HTMLElement).style.display = 'none';
 
     if (explode) {
@@ -827,11 +821,11 @@ function fireWeapon() {
   const { id: pid, x, y, dir, aim, power } = players[activePlayer];
   const id = getId();
   const tx = mouse.x + camera.x - vw / 2;
-  const ty = mouse.y;
+  const ty = mouse.y + camera.y - vh / 2;
   const seed = (Math.random() * 2 ** 32) >>> 0;
 
   switch (activeWeapon) {
-    case 0: return fireMissile(id, x, y, dir, aim, power);
+    case 0: return fireBazooka(id, x, y, dir, aim, power);
     case 1: return fireShotgun(id, x, y, dir, aim, seed);
     case 2: return fireUzi(id, x, y, dir, aim, seed);
     case 3: return fireAirStrike(id, x, tx, ty);
@@ -968,27 +962,15 @@ function fireCharge(id: number, x: number, y: number, dx: number, dy: number, po
  * Launch a missile from the player's position, in the direction they are aiming, and with the
  * correct amount of power based on how long they held down the power button.
  */
-function fireMissile(id: number, x: number, y: number, dir: number, aim: number, power: number) {
+function fireBazooka(id: number, x: number, y: number, dir: number, aim: number, power: number) {
   if (master) {
     // socketActionAddMissile(id, x, y, dir, aim, power);
     socketAction(11, pack(id, x, y, dir, aim, power));
   }
 
-  const dx = Math.cos(aim) * power * 2 * dir;
-  const dy = Math.sin(aim) * power * 2;
-
-  const sx = x + (dx * 10);
-  const sy = y - 10 + (dy * 10);
-
-  const dmg = rngi(60, 70);
-
-  const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg, wind: true, grav: true };
-  missiles.set(id, missile);
-  lockCamera(missile);
-
-  sfx(SFX_SHOOT);
-
-  cancelEndTurn();
+  const m = fireMissile(id, x, y, dir, aim, power);
+  m.wind = true;
+  m.grav = true;
 }
 
 /**
@@ -1010,23 +992,37 @@ function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: n
     showCrosshairs(true, tx, ty);
 
   } else if (p.tx && p.ty) {
-    // Phase 2, fire the missile.
-    const dx = Math.cos(aim) * power * 2 * dir;
-    const dy = Math.sin(aim) * power * 2;
-
-    const sx = x + (dx * 10);
-    const sy = y - 10 + (dy * 10);
-
-    const dmg = rngi(60, 70);
-
-    const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg, tx: p.tx, ty: p.ty, homing: true };
-    missiles.set(id, missile);
-    lockCamera(missile);
+    const m = fireMissile(id, x, y, dir, aim, power);
+    m.tx = p.tx;
+    m.ty = p.ty;
+    m.homing = true;
 
     p.tx = p.ty = undefined;
-
-    cancelEndTurn();
   }
+}
+
+/**
+ * 
+ */
+function fireMissile(id: number, x: number, y: number, dir: number, aim: number, power: number): Missile {
+  const dx = Math.cos(aim) * power * 2 * dir;
+  const dy = Math.sin(aim) * power * 2;
+
+  const sx = x + (dx * 10);
+  const sy = y - 10 + (dy * 10);
+
+  const dmg = rngi(60, 70);
+
+  const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg };
+
+  missiles.set(id, missile);
+  lockCamera(missile);
+
+  sfx(SFX_SHOOT);
+
+  cancelEndTurn();
+
+  return missile;
 }
 
 /**
@@ -1038,37 +1034,21 @@ async function fireAirStrike(id: number, x: number, tx: number, ty: number) {
     socketAction(14, pack(id, x, tx, ty));
   }
 
-  const dir = x < tx ? 1 : -1;
-  const dx = 0.2 * dir;
-
   lockCamera({ x: tx, y: ty });
   showCrosshairs(true, tx, ty);
 
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
+      const dir = x < tx ? 1 : -1;
+      const dx = 0.2 * dir;
       const offset = ((i - 2.5) * 50 - 150) * dir;
-      await fireAirStrikeRound(id + i, tx + offset, dx);
+      const power = rngi(55, 65);
+
+      // const m = await fireAirStrikeRound(id + i, tx + offset, -50, dx, 0.2, power);
+      const m = await fireMissileRound(id + i, tx + offset, -50, dx, 0.2, power, 150);
+      m.grav = true;
     }
   }, 1000);
-}
-
-/**
- * Drop a single missle from the sky.
- */
-async function fireAirStrikeRound(id: number, x: number, dx: number): Promise<void> {
-  return new Promise((resolve) => {
-    const dy = 0.2;
-
-    const power = rngi(55, 65);
-    
-    setTimeout(() => {
-      const missile: Missile = { id, x, y: -50, dx, dy, power, wind: false, grav: true };
-      missiles.set(id, missile);
-
-      cancelEndTurn();
-      resolve();
-    }, 150);
-  });
 }
 
 /**
@@ -1090,8 +1070,11 @@ async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
       const angle = Math.PI / 2 + (rng() * 0.5 - 0.25);
       const dx = Math.cos(angle) * 0.2;
       const dy = Math.sin(angle) * 0.2;
+      const power = rngi(75, 90);
 
-      await fireNyanCat(id + i, tx - dx * 100, -20, dx, dy);
+      // const m = await fireNyanCat(id + i, tx - dx * 100, -20, dx, dy, power);
+      const m = await fireMissileRound(id + i, tx - dx * 100, -20, dx, dy, power, 1250);
+      m.nyan = true;
     }
   }, 1000);
 }
@@ -1099,15 +1082,14 @@ async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
 /**
  * 
  */
-async function fireNyanCat(id: number, x: number, y: number, dx: number, dy: number): Promise<void> {
+async function fireMissileRound(id: number, x: number, y: number, dx: number, dy: number, power: number, delay: number): Promise<Missile> {
   return new Promise((resolve) => {
     setTimeout(() => {
-      const missile: Missile = { id, x, y, dx, dy, power: rngi(75, 90), wind: false, grav: false, nyan: true };
+      const missile: Missile = { id, x, y, dx, dy, power };
       missiles.set(id, missile);
-
       cancelEndTurn();
-      resolve();
-    }, 1250);
+      resolve(missile);
+    }, delay);
   });
 }
 
@@ -1350,8 +1332,8 @@ function updateGrenades(delta: number) {
       // Bounce off the terrain (type = 0)
       if (type === 0) {
         const j = Math.floor(g.x / 10);
-        const g1: Vector = [j * 10, ground + heights[j]];
-        const g2: Vector = [(j + 1) * 10, ground + heights[j + 1]];
+        const g1: Vector = [j * 10, GROUND + heights[j]];
+        const g2: Vector = [(j + 1) * 10, GROUND + heights[j + 1]];
         surface = subtract(g2, g1);
       }
 
@@ -1500,45 +1482,71 @@ function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: num
  * Update the camera position, to track an object in the world.
  */
 function updateCamera(delta: number) {
-  // Keyboard scrolling.
-  let horizontal = +keys.has('ArrowRight') - +keys.has('ArrowLeft');
+  let horizontal = 0
+  let vertical = 0;
 
   // Mouse scrolling.
-  if (mouse.over) {
+  if (mouse.over && master) {
     if (mouse.x > vw - 100) {
       horizontal = 1;
     } else if (mouse.x < 100) {
       horizontal = -1;
     }
+
+    if (mouse.y > vh - 100) {
+      vertical = 1;
+    } else if (mouse.y < 100) {
+      vertical = -1;
+    }
   }
 
-  const min = vw / 2;
-  const max = WORLD_SIZE - min;
+  const dx = horizontal * delta / 2;
+  const dy = vertical * delta / 2;
+
+  const minx = vw / 2;
+  const maxx = WW - minx;
+
+  const miny = vh / 2;
+  const maxy = WH - miny;
 
   // Allow free movement of the camera.
-  if (horizontal !== 0) {
+  if (horizontal !== 0 || vertical !== 0) {
     if (!camera.free) {
       camera.free = true;
       camera.to = { x: camera.to.x, y: camera.to.y };
     }
 
-    camera.to.x += horizontal * delta * 0.5;
-    camera.to.x = clamp(camera.to.x, min, max);
+    camera.to.x = clamp(camera.to.x + dx, minx, maxx);
+    camera.to.y = clamp(camera.to.y + dy, miny, maxy);
+
+    if (master) {
+      socketAction(24, pack(camera.to.x, camera.to.y));
+    }
   }
 
-  const target = clamp(camera.to.x, min, max);
-  camera.x = lerp(camera.x, target, 0.0075 * delta);
-  if (Math.abs(camera.x - target) < 0.1) {
-    camera.x = target;
+  const tx = clamp(camera.to.x, minx, maxx);
+  const ty = clamp(camera.to.y, miny, maxy);
+
+  camera.x = lerp(camera.x, tx, 0.0075 * delta);
+  if (Math.abs(camera.x - tx) < 0.1) {
+    camera.x = tx;
+  }
+
+  camera.y = lerp(camera.y, ty, 0.0075 * delta);
+  if (Math.abs(camera.y - ty) < 0.1) {
+    camera.y = ty;
   }
 
   camera.ttl = Math.max(camera.ttl - delta, 0);
+  const shake = camera.ttl > 0 ? Math.sin(camera.ttl / 15) * (camera.ttl / 20) : 0;
 
-  const base = 0 - clamp(camera.x, min, max) + (vw / 2);
-  const shake = Math.sin(camera.ttl / 15) * (camera.ttl / 20);
-  
-  const cx = base + shake;
-  sprop(viewport, '--cx', `${cx}px`);
+  const cx = clamp(camera.x, minx, maxx) - (vw / 2) + shake;
+  const cy = clamp(camera.y, miny, maxy) - (vh / 2);
+
+  // sprop(viewport, '--cx', `${cx}px`);
+  // sprop(viewport, '--cy', `${cy}px`);
+
+  document.body.scrollTo({ left: ~~cx, top: ~~cy });
 }
 
 /**
@@ -1555,6 +1563,10 @@ function lockCamera(to: Position) {
 function unlockCamera() {
   camera.free = false;
   camera.to = players[activePlayer];
+
+  if (master) {
+    socketAction(25);
+  }
 }
 
 /**
@@ -1650,7 +1662,7 @@ function raycastBrute(x: number, y: number, nx: number, ny: number, includePlaye
     ix += nx;
     iy += ny;
 
-    if (ix < 0 || ix > WORLD_SIZE || iy < 0 || iy > vh) {
+    if (ix < 0 || ix > WW || iy < 0 || iy > WH) {
       dist = Infinity;
       break;
     }
@@ -1713,8 +1725,8 @@ function insideCircle(x: number, y: number, cx: number, cy: number, r2: number):
  * 
  */
 function initHeights() {
-  for (let i = 0; i < WORLD_SIZE + 10; i += 10) {
-    const base = 0 - Math.sin(i / WORLD_SIZE * Math.PI);
+  for (let i = 0; i < WW + 10; i += 10) {
+    const base = 0 - Math.sin(i / WW * Math.PI);
     const aux = Math.abs(noise(i, 5, WORLD_SCALE, 0.4));
     heights.push(Math.round((base * NOISE_AMPLITUDE) - (aux * NOISE_AMPLITUDE / 2)));
   }
@@ -1726,25 +1738,19 @@ function initHeights() {
  */
 function initTerrain(home = false) {
   initMasks(home);
-  initTerrainLayer('l0', home, 10);
-  initTerrainLayer('l1', home, 0);
-  initTerrainLayer('l2', home, 0);
-  initTerrainLayer('l3', home, 20);
-  initTerrainLayer('l4', home, 35);
-  initTerrainLayer('l5', home, 35);
-  initSky();
+
+  let t = 0;
+  for (let offset of [10,0,0,20,35,35]) {
+    initTerrainLayer('l' + t++, home, offset);
+  }
 
   if (home) {
-    initWater('o6', 0);
-    initWater('o5', 20);
-    initWater('o4', 40);
-    initWater('o3', 60);
-    initWater('o2', 80);
-    initWater('o1', 100);
-
-    addHoles(800, vh - 720, 80);
-    addHoles(190, vh - 550, 80);
-    addHoles(1470, vh - 420, 80);
+    for (let i = 0; i < 6; i++) {
+      initWater('o' + (6 - i), i * 20);
+    }
+    addHoles(800, WH - 720, 80);
+    addHoles(190, WH - 550, 80);
+    addHoles(1470, WH - 420, 80);
   }
 }
 
@@ -1755,25 +1761,21 @@ function initTerrainLayer(id: string, home = false, offset: number): HTMLElement
   const layer = docElem(id)!;
   layer.innerHTML = '';
 
+  // Start bottom left.
+  let d = `M0 ${WH}`;
+
   if (home) {
-    const d = `M-10,${vh - 800} L${WORLD_SIZE},${vh - 800} L${WORLD_SIZE},${vh + 10} L-10,${vh + 10} Z`;
-    attr(layer, 'd', d);
+    d += `L0 ${WH - 800}L${WW} ${WH - 800}`;
   } else {
-    // Ground position.
-    const g = ground + offset;
-
-    // Start on the left.
-    let d = `M0,${g + heights[0]} `;
-
-    // Create points along the x-axis.
-    for (let i = 1; i < heights.length; i++) {
-      d += `L${i * 10},${g + heights[i]} `;
+    let j = 0;
+    for (let h of heights) {
+      d += `L${j++ * 10} ${GROUND + offset + h}`;
     }
-
-    // Bring the shape back round the start.
-    d += `L${WORLD_SIZE},${vh + 10} L-10,${vh + 10} Z`;
-    attr(layer, 'd', d);
   }
+
+  // Finish bottom right.
+  d += `L${WW} ${WH}Z`;
+  attr(layer, 'd', d);
 
   return layer;
 }
@@ -1795,17 +1797,17 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
   const layer = docElem(id)!;
   
   const path = elemSVG('path');
-  attrNS(path, 'd', `M-10,0 L${WORLD_SIZE},0 L${WORLD_SIZE},${vh + 10} L-10,${vh + 10} Z`);
+  attrNS(path, 'd', `M-10,0 L${WW},0 L${WW},${WH + 10} L-10,${WH + 10} Z`);
   attrNS(path, 'fill', home ? 'black' : 'white');
   layer.appendChild(path);
 
   if (home) {
     const logo1 = logo.cloneNode(true) as HTMLElement;
-    attrNS(logo1, 'transform', `translate(180, ${vh - 720 + offset}) scale(4.5)`);
+    attrNS(logo1, 'transform', `translate(180, ${WH - 720 + offset}) scale(4.5)`);
     layer.appendChild(logo1);
 
     const logo2 = logo.cloneNode(true) as HTMLElement;
-    attrNS(logo2, 'transform', `translate(180, ${vh - 690}) scale(4.5)`);
+    attrNS(logo2, 'transform', `translate(180, ${WH - 690}) scale(4.5)`);
     layer.appendChild(logo2);
   }
 
@@ -1818,15 +1820,8 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
 function initWater(id: string, offset: number) {
   const rect = docElem(id)!;
   attrNS(rect, 'x', (-offset * 2.7 + rngi(-40, 0)));
-  attrNS(rect, 'y', (vh - 100 - offset));
+  attrNS(rect, 'y', (WH - 100 - offset));
   attrNS(rect, 'width', OCEAN_SIZE);
-}
-
-/**
- * Initialise the background sky layer.
- */
-function initSky() {
-  attr(sky, 'd', `M0,0 L${WORLD_SIZE},0 L${WORLD_SIZE},${vh} L0,${vh} Z`);
 }
 
 /**
@@ -1835,8 +1830,8 @@ function initSky() {
  */
 function getTerrainHeight(x: number): number {
   const j = Math.floor(x / 10);
-  const g1 = ground + heights[j];
-  const g2 = ground + heights[j + 1];
+  const g1 = GROUND + heights[j];
+  const g2 = GROUND + heights[j + 1];
   const k = (x / 10) - j;
   return lerp(g1, g2, k) + 2;
 }
@@ -1854,9 +1849,16 @@ function addBlast(_: number, x: number, y: number, r: number, kb: number, ignore
   if (master) {
     const r2 = Math.pow(r * 1.5, 2);
 
+    // Track the player that has been impacted the most by the blast,
+    // so that the camera can follow them.
+    let fi: number | null = null;
+    let fv = 0;
+
     for (let i = 0; i < players.length; i++) {
       const p = players[i];
 
+      // Some blasts don't impact the player creating them, such as for the
+      // shotgun, uzi, and minigun. Also, don't impact dead worms.
       if (ignorePlayer === i || p.dead) {
         continue;
       }
@@ -1867,15 +1869,28 @@ function addBlast(_: number, x: number, y: number, r: number, kb: number, ignore
         const damage = (1 - (d2 / r2)) * r / 2;
         const force = Math.log2((1 - (d2 / r2)) * r) / 2;
         const angle = Math.atan2(p.y - y, p.x - x);
+        const velocity = kb * force * 0.2;
+
+        // This player was impacted more that any previous player, so they
+        // become the current favourite for the camera to track.
+        if (velocity > fv) {
+          fv = velocity;
+          fi = i;
+        }
 
         p.ragdoll = true;
-        p.dx = kb * (Math.cos(angle) * force * 0.2);
-        p.dy = kb * (Math.sin(angle) * force * 0.2 - 0.2);
+        p.dx = velocity * Math.cos(angle);
+        p.dy = velocity * Math.sin(angle) - 0.1;
         p.vr = Math.max(10, force * 10 * p.dir);
         p.hp = Math.max(Math.floor(p.hp - damage), 0);
 
         updatePlayerHealth(p);
       }
+    }
+
+    // Track the player that is moving around the most.
+    if (fi !== null) {
+      lockCamera(players[fi]);
     }
   }
 }
@@ -1914,8 +1929,14 @@ function addHole(layer: HTMLElement, x: number, y: number, r: number) {
  * Initialise the primary SVG wrapper.
  */
 function initSvg() {
-  attr(svg, 'width', WORLD_SIZE);
-  attr(svg, 'height', vh);
+  attr(svg, 'width', WW);
+  attr(svg, 'height', WH);
+  attr(svg2, 'width', WW);
+  attr(svg2, 'height', WH);
+  attr(svg3, 'width', WW);
+  attr(svg3, 'height', WH);
+
+  document.body.style.cursor = `url('data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="27" height="36"><path fill="#FF418B" stroke="#000" stroke-width="2" d="m20 25 2 6c0 2-4 4-7 4-2 0-3-2-5-5l-5 2c-3 0-4-6-4-15C1 9 1 3 3 1c2-1 7 2 13 8 6 4 10 9 10 11s-2 4-6 5Z"/><path fill="#FF859F" d="M4 5c1-3 3-1 5 1-5-2-5 6-4 22C3 21 3 8 4 5Z"/></svg>')}') 6 5, pointer`;
 }
 
 // ================================================================================================
@@ -2286,7 +2307,7 @@ socketRegister((data) => {
 
   for (const p of players) {
     updatePlayerHealth(p);
-    text(getPlayerNameElement(p), NAMES[p.i]);
+    text(getPlayerInfoElement(p, 2), NAMES[p.i]);
   }
 });
 
@@ -2398,7 +2419,7 @@ socketRegister((data) => {
 // "11" Fire bazooka
 socketRegister((data) => {
   const [id, x, y, dir, aim, power] = unpack(data);
-  fireMissile(int(id), f(x), f(y), int(dir), f(aim), f(power));
+  fireBazooka(int(id), f(x), f(y), int(dir), f(aim), f(power));
 });
 
 // "12" Fire shotgun.
@@ -2471,6 +2492,20 @@ socketRegister((data) => {
 socketRegister((data) => {
   const [id, x, y, dx, dy, power] = unpack(data);
   fireCharge(int(id), f(x), f(y), f(dx), f(dy), f(power));
+});
+
+//// CAMERA
+
+// "24" Switch the camera into free movement mode.
+socketRegister((data) => {
+  const [x, y] = unpack(data);
+  camera.free = true;
+  camera.to = { x: int(x), y: int(y) };
+});
+
+// "25" Unlock the camera.
+socketRegister(() => {
+  unlockCamera();
 });
 
 // ================================================================================================

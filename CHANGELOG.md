@@ -1,3 +1,33 @@
+## To Do
+
+- Fix collisions
+- Title screen
+- Game over screen
+- Upload to js13k site
+- Better jump mechanics
+- Round timer
+
+## Day 27 (9th September)
+
+- Camera tracking of players that are impacted by explosions.
+- Better camera tracking in multiplayer.
+- Fix z-ordering of various elements.
+- Hide browser scrollbars.
+- Performance improvements.
+- Removed reload hack when viewport resizes.
+
+> 12098 bytes (90.9%)
+
+## Day 26 (8th September)
+
+- Viewport agnostic world size.
+- Better camera snapping.
+- Removed sky element, using fixed gradient instead.
+- Refactored panning to use browser scrolling for performance.
+- Moved player objects to a separate SVG element.
+
+> 12016 bytes (90.3%)
+
 ## Day 25 (7th September)
 
 - Optimised weapon data.
