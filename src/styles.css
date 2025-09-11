@@ -17,7 +17,7 @@ body,
   height: 100vh;
 }
 
-#id1, #id2, #id19, #id20, #hp /* #world, #svg, #svg2 */ {
+#id2, #id19, #id20, #hp /* #world, #svg, #svg2 */ {
   position: absolute;
   top: 0;
   left: 0;
@@ -27,7 +27,7 @@ body,
  * Text panels
  */
 
-#id11, #wind, #hp, #id14, .weapon /* #weaponLabel, #captions */ {
+#id1, #id11, #id14, #id22, #id23, #id24, #id25, #id26, #wind, #hp, .weapon /* #timer, #weaponLabel, #captions, #menu1, #menu2, #menu3 */ {
   background: #000;
   border: 2px solid var(--c, #fff);
   box-shadow: 0 0 0 3px #000, inset 0 0 0 4px #000;
@@ -39,9 +39,17 @@ body,
  * User interface
  */
 
-#id10, #id11, #id14, #wind /* #weapons, #weaponLabel, #captions */ {
+#id1, #id10, #id11, #id14, #wind /* #weapons, #weaponLabel, #captions */ {
   position: fixed;
   left: 50vw;
+}
+
+#id1 {
+  left: 56px;
+  bottom: 26px;
+  padding: 8px 12px;
+  width: 32px;
+  transform: translate(-50%, 150px);
 }
 
 /**
@@ -57,7 +65,7 @@ body,
 #id11 /* #weaponLabel */ {
   top: 90px;
   height: 14px;
-  padding: 6px;
+  padding: 8px 12px;
   transform: translate(-50%, -150px);
 }
 
@@ -87,7 +95,7 @@ body,
 #id14 /* #msg */ {
   bottom: 68px;
   height: 14px;
-  padding: 6px;
+  padding: 8px 12px;
   transform: translate(-50%, 150px);
 }
 
@@ -98,7 +106,7 @@ body,
 #wind {
   bottom: 26px;
   width: 398px;
-  height: 26px;
+  height: 30px;
   background: linear-gradient(to right, #f00, #ff0, #0f0, #ff0, #f00);
   transform: translate(-50%, 150px);
 }
@@ -107,8 +115,8 @@ body,
   position: absolute;
   top: 3px;
   width: 100px;
-  height: 20px;
-  background: #222;
+  height: 24px;
+  background: #000;
 }
 
 #id12 /* #windleft */ {
@@ -122,7 +130,7 @@ body,
 #winddiv {
   top: 0;
   width: 2px;
-  height: 26px;
+  height: 30px;
   background: #fff;
   left: calc(50% - 1px);
 }
@@ -135,7 +143,8 @@ body,
   display: inline-block;
   width: 14px;
   height: 14px;
-  background: url(data:image/gif;base64,R0lGODdhEQEHAIAAAAAAAP///yH5BAgKAAAALAAAAAARAQcAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXAv+LA7S6LWBjYq14e+5zIWUTWUECc0ek8uYVir12ZwwJs2GRj+GZjVLBwpy2JWvqAqeR+nbuLA+tdcDaOfyxoLn9gU347UFV/SR42ckAylnpeAmN1d1OZimeDW6goS5wzeYYmjniOgYZjnadRhISbZo67kjGhbV9FdaaCYZWghFnMJ3wIPaY/QczIRcYsKbddt39xedN3a0TckpfVxru5xoOv14LpjnjE4FmJ1MRGONfOZHa18fV05Mj8BxBJMpWzNrlR5nloBo6WaqGjcx9yQ97GRQ27dGDQ9B8droKt+NFgUTFQAAOw==);
+  /* background: url(data:image/gif;base64,R0lGODdhEQEHAIAAAAAAAP///yH5BAgKAAAALAAAAAARAQcAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXAv+LA7S6LWBjYq14e+5zIWUTWUECc0ek8uYVir12ZwwJs2GRj+GZjVLBwpy2JWvqAqeR+nbuLA+tdcDaOfyxoLn9gU347UFV/SR42ckAylnpeAmN1d1OZimeDW6goS5wzeYYmjniOgYZjnadRhISbZo67kjGhbV9FdaaCYZWghFnMJ3wIPaY/QczIRcYsKbddt39xedN3a0TckpfVxru5xoOv14LpjnjE4FmJ1MRGONfOZHa18fV05Mj8BxBJMpWzNrlR5nloBo6WaqGjcx9yQ97GRQ27dGDQ9B8droKt+NFgUTFQAAOw==); */
+  background: url(data:image/gif;base64,R0lGODdhHwEHAIAAAAAAAP///yH5BAgKAAAALAAAAAAfAQcAAAL/BIKGG8r3IJvLTQNlxRpH31hhdlFiY3bnprZfkmiXxGXnCqJzR+mxXAv+LMEiiDR6bWAjh7D5izZzIWatklJKt8kltNrlUn22IdZJtKnVjyH6/WJPr1OWm07Nc8T7uv/41me1JmOiFYao9wRnd8bkxahz9JEDiFRI2EdzIGfkQdflKWf4twIGWahUlELY45ooohezU4bo05MWmyZl6YIF9sQ6aju3tyjqhatrSdkK2zmMOsmz44qkjIfGW0LKMsocuiwo7Asnnim6dqe5fOjkdjfbCMg3CC7fCA/8CF1Lj49p3iZ67LzxmvRM3qde69IdM8IlArdk5EwhbINxDCtVGtyCkaFBK6KxSOFqzcj36lapk6rGnHMYyGEBADs=);
   background-size: auto 14px;
   image-rendering: pixelated;
   border-right: 2px solid #000;
@@ -168,7 +177,7 @@ body,
 }
 
 /* id10=#weapons, id11=#weaponLabel, id14=#captions */
-.started :is(#id10, #id11, #id14, #wind) {
+.started :is(#id1, #id10, #id11, #id14, #wind) {
   transform: translate(-50%, 0);
   transition: transform 1s ease-out;
 }
@@ -181,10 +190,25 @@ body,
   filter: saturate(0) brightness(2.5);
 }
 
-#id6 /* #targetlock */ {
-  filter: hue-rotate(-250deg);
-}
-
 #hide {
   display: none;
+}
+
+#menu {
+  position: fixed;
+  top: 100px;
+  left: 50%;
+  height: 200px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+#id22, #id23, #id24, #id25, #id26 {
+  opacity: 0;
+  padding: 8px 12px;
+  transition: opacity .5s ease;
 }

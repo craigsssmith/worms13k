@@ -10,7 +10,7 @@ const docElems = (count: number) => new Array(count).fill(0).map((_, i) => docEl
 
 // Constants.
 const NAMES = 'ALICE|CLIVE|BORIS|RICHARD|MIKE|SARAH|PAULINE|HENRY'.split('|');
-const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \'!';
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \'!:-';
 const HALF_PI = Math.PI / 2;
 const WW = 8000;
 const WH = 2000;
@@ -23,9 +23,11 @@ const PLAYER_GRAVITY = 0.002;
 const MISSILE_GRAVITY = 0.001;
 
 // Sound effects.
-const SFX_EXPLOSION = [1.5,,50,.08,.18,.36,4,2.9,-5,,,,,1.2,20,.6,.16,.4,.12,,1689];
+const SFX_EXPLOSION = [1.3,,50,.08,.18,.36,4,2.9,-5,,,,,1.2,20,.6,.16,.4,.12,,1689];
 const SFX_JUMP = [,,369,.02,.05,.09,1,1.5,2,157,,,,,,.1,,.72,,,926];
-const SFX_SHOOT = [,,109,.02,.19,.07,2,.8,10,45,,,,.1,18,.2,,.86,.09];
+const SFX_SHOOT = [1.7,,185,.03,.01,.06,3,3.2,-16,-9,50,,,,,.4,.2,.67,.1,,-1376];
+const SFX_GUNSHOT = [.6,,328,.01,.01,.03,3,3.7,7,,-50,,.01,.1,7.4,,,.74,,,193];
+const SFX_BOUNCE = [,324,,.05,.09,1,3.1,-3,-8,,,,.8,38,.3,,.42,.09,,-2385];
 
 // Noise function.
 const rngf = splitmix32((Math.random() * 2 ** 32) >>> 0);
@@ -39,10 +41,10 @@ let vw = innerWidth;
 let vh = innerHeight;
 
 // Viewport element, inside of which the svg is scrolled.
-const [viewport, world, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names] = docElems(22);
+const [viewport, timer, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names, menu1, menu2, menu3, menu4, menu5, arrow, muzzle] = docElems(29);
 
 // Keep track of the holes and tunnels in the terrain.
-const holes: Hole[] = [];
+let holes: Hole[] = [];
 
 // Create the terrain layers.
 let heights: number[] = [];
@@ -52,7 +54,12 @@ let masks: HTMLElement[] = [];
 
 // Has the game started.
 let started = false;
+let gameover = false;
 let master = false;
+let connected = true;
+let code: number[] = [];
+let codeInput = false;
+let cursor = 0;
 let timeout: NodeJS.Timeout | null = null;
 
 // Create a series of players, 4 for each team.
@@ -60,6 +67,9 @@ let players: Player[] = [];
 let activePlayer = 0;
 let activeTeam = 0;
 let activeWeapon = 0;
+let muzzlettl = 0;
+let gameoverttl = 0;
+let roundtime = 0;
 
 // Current wind state.
 let windSpeed = 0;
@@ -109,24 +119,36 @@ addEventListener('mousedown', (event) => {
 
 // Keep track of which keyboard buttons are pressed.
 addEventListener('keydown', (event) => {
-  if (event.keyCode === 32) {
+  const kc = event.keyCode;
+
+  // Prevent the space bar from scrolling the page.
+  if (kc === 32) {
     event.preventDefault();
   }
 
+  // Keep track of the keys that are currently down.
   if (started) {
     keys.add(event.code);
     keys.add(event.key);
   }
 
-  switch (event.code) {
-    case 'KeyN':
-      return activateNextPlayer();
-    case 'Space':
-      return startGame();
-    case 'KeyK':
-      return startMultiplayerGame();
-    case 'KeyJ':
-      return joinMultiplayerGame();
+  // Read numeric input to fill out the multiplayer code.
+  if (!started && codeInput && kc >= 48 && kc <= 57) {
+    code[cursor++] = kc - 48;
+    text(menu5, 'ENTER CODE: ' + code.join('').padEnd(8, '-'));
+
+    if (code.length === 8) {
+      joinMultiplayerGame();
+    }
+  }
+
+  // Switch to a different player.
+  if (event.code === 'KeyN') {
+    activateNextPlayer();
+  }
+
+  if (event.code === 'KeyX') {
+    gameover = true;
   }
 });
 
@@ -167,13 +189,14 @@ document.body.addEventListener('mouseleave', () => {
 function tick(t: number) {
   requestAnimationFrame(tick);
 
-  const delta = t - time;
+  const delta = clamp(t - time, 0, 33);
   time = t;
 
   updatePlayers(delta);
   updateCrosshairs(delta);
   updatePowerbar(delta);
   updateExplosions(delta);
+  updateMuzzleFlash(delta);
   updateTracers(delta);
   updateMissiles(delta);
   updateDynamites(delta);
@@ -183,6 +206,8 @@ function tick(t: number) {
   updateDestroyedElement();
   updateStateSync(delta);
   updateCaptions(delta);
+  updateGameOver(delta);
+  updateTimer(delta);
 }
 
 /**
@@ -190,6 +215,7 @@ function tick(t: number) {
  */
 function initGame() {
   initSvg();
+  initMenu();
   requestAnimationFrame(tick);
   initTerrain(true);
   initWeaponsUI();
@@ -198,15 +224,21 @@ function initGame() {
 /**
  * 
  */
-function startGame() {
+function startRegularGame() {
   if (!started) {
     initHeights();
     initTerrain(false);
+    initTerrainDamage();
     initPlayers();
+    randomiseWind();
     unlockCamera();
+    menuShow(menu1, false);
+    menuShow(menu2, false);
+    menuShow(menu3, false);
     document.body.classList.add('started');
     started = true;
     master = true;
+    roundtime = 30;
   }
 }
 
@@ -214,29 +246,77 @@ function startGame() {
  * 
  */
 function startMultiplayerGame() {
-  socketInit();
-  startGame();
+  startRegularGame();
+  connected = false;
+  code = new Array(8).fill(0).map(() => rngi(0, 10));
+  socketInit(code.join(''));
+  menuShow(menu4, true);
+  text(menu4, 'WAITING FOR PLAYER TO JOIN: ' + code.join(''));
+}
+
+/**
+ * 
+ */
+function showCodeInput() {
+  connected = false;
+  codeInput = true;
+  text(menu5, 'ENTER CODE: --------'); 
+  menuShow(menu1, false);
+  menuShow(menu2, false);
+  menuShow(menu3, false);
+  menuShow(menu5, true);
 }
 
 /**
  * 
  */
 function joinMultiplayerGame() {
-  socketInit();
+  socketInit(code.join(''));
   // socketActionJoin();
   socketAction(0);
 }
 
 /**
- * Join a game started by someone else.
+ * 
  */
-function joinGame() {
-  if (!started) {
-    initTerrain(false);
-    unlockCamera();
-    document.body.classList.add('started');
-    started = true;
-    master = false;
+let timerstr = '';
+function updateTimer(delta: number) {
+  if (started) {
+    roundtime -= delta / 1000;
+    const str = ('' + Math.ceil(roundtime)).padStart(2, '0')
+
+    if (master && roundtime <= 0) {
+      activateNextTeam();
+      caption('OOPS, YOU RAN OUT OF TIME!')
+    }
+    
+    if (timerstr !== str) {
+      timerstr = str;
+      text(timer, str);
+    }
+  }
+}
+
+/**
+ * 
+ */
+async function updateGameOver(delta: number) {
+  if (gameover) {
+    gameoverttl += delta;
+
+    if (gameoverttl > 500) {
+      gameoverttl -= 500;
+
+      const x = camera.x - (vw / 2) + (rngi(0, vw));
+      const y = 0;
+
+      const dx = rngf() * 0.4 - 0.4;
+      const dy = 0.2;
+
+      const m = await fireMissileRound(getId(), x, y, dx, dy, rngi(60, 80), 150);
+      m.grav = true;
+      m.wind = true;
+    }
   }
 }
 
@@ -306,7 +386,7 @@ function getPlayerElement(p: Player) {
  */
 function getPlayerInfoElement(p: Player, offset: number) {
   return getElement(names, 'hp', p.id + offset, (el: HTMLElement) => {
-    sprop(el, '--c', p.team === 0 ? '#f0f' : '#0ff');
+    sprop(el, '--c', p.team === 0 ? '#FF418B' : '#00EAFF');
   });
 }
 
@@ -330,14 +410,11 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
   const el3 = getPlayerInfoElement(p, 2) as HTMLElement;
 
   if (!p.gone) {
-    // const horizontal = master && active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
-    // const jumping = master && active ? keys.has('Space') && p.onGround : false;
-
-    if (master) {
+    if (master && connected) {
 
       // Keyboard input.
-      p.ix = active ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
-      p.jumping = !!(active ? keys.has('Space') && p.onGround : false);
+      p.ix = active && (p.cooldown || 0) <= 0 ? +keys.has('KeyD') - +keys.has('KeyA') : 0;
+      p.jumping = !!(active ? keys.has('Space') && p.onGround && (p.cooldown || 0) <= 0 : false);
 
       // Snap back to the player when they move.
       if (p.ix !== 0) {
@@ -346,7 +423,7 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
 
       // Update the velocity.
       p.dx = p.dx + (p.onGround ? p.ix * 0.1 : 0);
-      p.dy = p.dy + (p.jumping ? -0.5 : 0);
+      p.dy = p.dy + (p.jumping ? -0.6 : 0);
 
       // Prevent the player from picking up too much speed when walking.
       if (p.onGround && !p.ragdoll) {
@@ -355,17 +432,20 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
 
       // Boost the player forwards when they jump.
       if (p.jumping) {
-        p.dx += p.ix * 0.1;
+        p.dx += p.dir * 0.2;
+        p.cooldown = 500;
       }
 
       // Apply ground friction.
       if (!p.jumping && p.onGround) {
         p.dx *= 0.5;
+        p.jumped = false;
       }
 
       // Play a jumping sound effect.
       if (p.jumping && p.onGround) {
         sfx(SFX_JUMP);
+        p.jumped = true;
       }
 
       // Apply gravity.
@@ -382,6 +462,7 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       // Align the player the correct way each time they bounce.
       if (p.onGround) {
         p.r = 0;
+        p.cooldown = (p.cooldown || 0) - delta;
       }
 
       // Prevent micro-rotations.
@@ -399,18 +480,34 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
 
       // Check for collisions, and adjust the player as necessary.
       if (checkCollision(p.x, p.y)) {
-        const [dist] = raycastUp(p.x, p.y);
+        const [up] = raycast(p.x, p.y, 0, -1);
+        const [down] = raycast(p.x, p.y - 20, 0, 1);
+        const [right] = raycast(p.x - 5, p.y - 10, 1, 0);
+        const [left] = raycast(p.x + 5, p.y - 10, -1, 0);
 
-        if (dist !== Infinity && dist > 0) {
-          p.y -= dist;
+        // Push the player, back up above a floor.
+        if (up !== Infinity && up > 0 && p.dy > 0) {
+          p.y -= up;
+          p.dy = p.ragdoll ? 0 - (p.dy * 0.5) : 0;
           p.onGround = true;
+        }
 
-          // The player should bounce when they have been blasted, rather than jumping.
-          if (p.ragdoll) {
-            p.dy = 0 - (p.dy * 0.5);
-          } else {
-            p.dy = 0;
-          }
+        // Push the player, back below a ceiling.
+        if (down !== Infinity && down > 0 && p.dy < 0) {
+          p.y += down;
+          p.dy = p.ragdoll ? 0 - (p.dy * 0.5) : 0;
+        }
+
+        // Push the player left, back out of a right-hand wall.
+        if (left !== Infinity && left > 0 && p.dx > 0) {
+          p.x -= left;
+          p.dx = p.ragdoll || !p.onGround ? 0 - (p.dx * 0.5) : 0;
+        }
+
+        // Push the player right, back out of a left-hand wall.
+        if (right !== Infinity && right > 0 && p.dx < 0) {
+          p.x += right;
+          p.dx = p.ragdoll || !p.onGround ? 0 - (p.dx * 0.5) : 0;
         }
       } else {
         p.onGround = false;
@@ -433,7 +530,7 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
     transform(el1, x, p.y - 60 * scale, [p.r, 32 * sx, 32 * scale], [sx, scale]);
 
     // Switch to a different animation.
-    const anim = p.ix ? 1 : 0;
+    const anim = p.jumped ? 2 : p.ix ? 1 : 0;
     if (p.anim !== anim) {
       p.anim = anim;
       p.frame = 0;
@@ -461,7 +558,12 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
     let x2 = px - el3.children.length * 8 - 4;
     let y2 = py - 97;
     el3.style.transform = `translate(${x2}px, ${y2}px)`;
-    
+
+    // Position the arrow over the active player.
+    if (p.i === activePlayer) {
+      transform(arrow, p.x - 7.5, p.y - 120);
+      arrow.style.fill = p.team === 0 ? '#FF418B' : '#00EAFF';
+    }
   } else {
     el2.style.display = 'none';
     el3.style.display = 'none';
@@ -506,7 +608,7 @@ function updateCrosshairs(delta: number) {
     const p = players[activePlayer];
 
     if (p) {
-      if (master) {
+      if (master && connected) {
         const vertical = +keys.has('KeyS') - +keys.has('KeyW');
 
         if (vertical !== 0) {
@@ -519,7 +621,10 @@ function updateCrosshairs(delta: number) {
       const [x, y] = rpos(p, 0, -10, 150);
 
       transform(powerbar, p.x, p.y, [p.aim, 0, 0]);
-      showCrosshairs(false, x, y); 
+      showCrosshairs(false, x, y);
+
+      // Match the colour to the team colour
+      crosshairs.style.fill = p.team === 0 ? '#FF418B' : '#00EAFF';
     } else {
       hideCrosshairs(false);
     }
@@ -554,7 +659,7 @@ function updatePowerbar(delta: number) {
 
   if (p) {
     if (!p.hasFired && (w[2] || w[4])) { // 2 = aim, 4 = place
-      if (master) {
+      if (master && connected) {
         const isFireKeyDown = keys.has('KeyP');
 
         if (w[1]) { // 1 = power
@@ -590,6 +695,7 @@ function updatePowerbar(delta: number) {
  */
 function activateNextPlayer() {
   if (master) {
+    // Cycle through the players, looking for one that is alive.
     do {
       activePlayer = (activePlayer + 2) % players.length;
     } while (players[activePlayer].dead);
@@ -622,25 +728,57 @@ function activateNextTeam() {
 
     // Only move to the next team if there are no players about to explode.
     if (count === 0) {
-      activeWeapon = 0;
-      activeTeam = 1 - activeTeam;
-      activateRandomPlayer();
-      randomiseWind();
-      resetPlayers();
-      socketActionGameState();
+      if (!checkForGameOver()) {
+        activeWeapon = 0;
+        activeTeam = 1 - activeTeam;
+        roundtime = 30;
 
-      if (socket) {
-        master = false;
-        // socketActionEndTurn();
-        socketAction(3);
-      } else {
-        caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
+        activateRandomPlayer();
+        randomiseWind();
+        resetPlayers();
+        socketActionGameState();
+
+        if (socket) {
+          master = false;
+          // socketActionEndTurn();
+          socketAction(3);
+        } else {
+          caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
+        }
       }
     }
   }
 
   unlockCamera();
   updateWeaponUI();
+}
+
+/**
+ * 
+ */
+function checkForGameOver() {
+  // Determine how many players are still alive.
+  const counts = [0, 0];
+
+  for (const p of players) {
+    if (!p.gone) {
+      counts[p.team]++;
+    }
+  }
+
+  // If there are none alive, the other player has won!
+  if (!counts[0] && !counts[1]) {
+    caption(`WHOA, IT'S A DRAW!`);
+    gameover = true;
+  } else if (!counts[0]) {
+    caption(`CONGRATULATIONS TEAM 2! YOU WIN!`);
+    gameover = true;
+  } else if (!counts[1]) {
+    caption(`CONGRATULATIONS TEAM 1! YOU WIN!`);
+    gameover = true;
+  }
+
+  return gameover;
 }
 
 /**
@@ -788,13 +926,12 @@ function initWeaponsUI() {
     el.innerHTML = `<svg>${icon}</svg>`;
 
     el.addEventListener('mousedown', function() {
-      if (master) {
+      if (master && connected) {
         activeWeapon = i;
         socketActionGameState();
+        updateWeaponUI();
+        hideCrosshairs(false);
       }
-
-      updateWeaponUI();
-      hideCrosshairs(false);
     });
 
     weapons.append(el);
@@ -838,6 +975,29 @@ function fireWeapon() {
     case 10: return fireNyanCats(id, tx, ty, seed);
     case 11: return fireCricketBat(pid, x, y, dir, aim);
   }
+}
+
+/**
+ * 
+ */
+function updateMuzzleFlash(delta: number) {
+  if (muzzlettl > 0) {
+    muzzlettl -= delta;
+
+    if (muzzlettl <= 0){
+      muzzlettl = 0;
+      transform(muzzle, 0, 0);
+    }
+  }
+}
+
+/**
+ * 
+ */
+function flashMuzzle(x: number, y: number) {
+  const r = rngf() * 0.4 + 1.5;
+  transform(muzzle, x, y, [rngi(0, 360), 0, 0], [r, r]);
+  muzzlettl = 150;
 }
 
 // ================================================================================================
@@ -1011,7 +1171,7 @@ function fireMissile(id: number, x: number, y: number, dir: number, aim: number,
   const sx = x + (dx * 10);
   const sy = y - 10 + (dy * 10);
 
-  const dmg = rngi(60, 70);
+  const dmg = rngi(70, 80);
 
   const missile: Missile = { id, x: sx, y: sy, dx, dy, power: dmg };
 
@@ -1019,6 +1179,7 @@ function fireMissile(id: number, x: number, y: number, dir: number, aim: number,
   lockCamera(missile);
 
   sfx(SFX_SHOOT);
+  flashMuzzle(sx, sy);
 
   cancelEndTurn();
 
@@ -1067,9 +1228,9 @@ async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
 
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
-      const angle = Math.PI / 2 + (rng() * 0.5 - 0.25);
-      const dx = Math.cos(angle) * 0.2;
-      const dy = Math.sin(angle) * 0.2;
+      const angle = Math.PI / 2 + (rng() * 0.2 - 0.1);
+      const dx = Math.cos(angle) * 0.4;
+      const dy = Math.sin(angle) * 0.4;
       const power = rngi(75, 90);
 
       // const m = await fireNyanCat(id + i, tx - dx * 100, -20, dx, dy, power);
@@ -1181,6 +1342,9 @@ async function fireRound(id: number, x: number, y: number, angle: number, power:
     const dist = raycastBrute(x, y, nx, ny, player.i);
   
     if (dist !== Infinity) {
+      const sx = x + nx * 20;
+      const sy = y + ny * 20;
+
       const tx = x + nx * dist;
       const ty = y + ny * dist;
   
@@ -1189,7 +1353,9 @@ async function fireRound(id: number, x: number, y: number, angle: number, power:
       }
   
       setTimeout(() => {
-        addTracer(x, y, tx, ty);
+        addTracer(sx, sy, tx, ty);
+        flashMuzzle(sx, sy);
+        sfx(SFX_GUNSHOT);
 
         if (master) {
           const dmg = rngi(power[0], power[1]);
@@ -1316,12 +1482,18 @@ function updateGrenades(delta: number) {
     if (checkCollision(g.x, g.y + 8)) {
 
       // Small puff if it's big bounce.
-      if (magnitude([g.dx, g.dy]) > 0.4) {
+      const mag = magnitude([g.dx, g.dy])
+      if (mag > 0.4) {
         addSmoke(g.x, g.y);
+        
+      }
+
+      if (mag > 0.2) {
+        sfx([mag * 3, ...SFX_BOUNCE]);
       }
 
       // Bring the grenade back up to the surface.
-      const [dist, type, payload] = raycastUp(g.x, g.y + 8);
+      const [dist, type, payload] = raycast(g.x, g.y + 8, 0, -1);
       if (dist !== Infinity && dist > 0) {
         g.y -= dist;
       }
@@ -1383,7 +1555,7 @@ function fireGrenade(id: number, x: number, y: number, dir: number, aim: number,
   const dx = Math.cos(aim) * power * 1.25 * dir;
   const dy = Math.sin(aim) * power * 1.25;
 
-  const dmg = rngi(45, 55) * (holy ? 4 : 1);
+  const dmg = rngi(55, 65) * (holy ? 3 : 1);
 
   const g: Grenade = { id, x: sx, y: sy, dx, dy, holy, cluster, power: dmg, ttl: 5000 };
   grenades.set(id, g);
@@ -1423,7 +1595,7 @@ function explodeGrenade(g: Grenade) {
 
   if (master) {
     const clusters = g.holy ? 10 : g.cluster ? 5 : 0;
-    const power = g.holy ? rngi(70, 90) : g.cluster ? rngi(30, 40) : 0;
+    const power = g.holy ? rngi(70, 90) : g.cluster ? rngi(40, 60) : 0;
 
     for (let i = 0; i < clusters; i++) {
       const angle = Math.random() * Math.PI * 2;
@@ -1469,6 +1641,7 @@ function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: num
         updatePlayerHealth(p2);
         lockCamera(p2);
         requestEndTurn();
+        flashMuzzle(p2.x, p2.y - 10);
       }
     }
   }
@@ -1486,7 +1659,7 @@ function updateCamera(delta: number) {
   let vertical = 0;
 
   // Mouse scrolling.
-  if (mouse.over && master) {
+  if (mouse.over && master && connected) {
     if (mouse.x > vw - 100) {
       horizontal = 1;
     } else if (mouse.x < 100) {
@@ -1496,7 +1669,11 @@ function updateCamera(delta: number) {
     if (mouse.y > vh - 100) {
       vertical = 1;
     } else if (mouse.y < 100) {
-      vertical = -1;
+      const min = vw / 2 - 420;
+      const max = vw / 2 + 420;
+      if (mouse.x < min || mouse.x > max) {
+        vertical = -1;
+      }
     }
   }
 
@@ -1542,9 +1719,6 @@ function updateCamera(delta: number) {
 
   const cx = clamp(camera.x, minx, maxx) - (vw / 2) + shake;
   const cy = clamp(camera.y, miny, maxy) - (vh / 2);
-
-  // sprop(viewport, '--cx', `${cx}px`);
-  // sprop(viewport, '--cy', `${cy}px`);
 
   document.body.scrollTo({ left: ~~cx, top: ~~cy });
 }
@@ -1613,35 +1787,83 @@ function checkCollision(x: number, y: number, includePlayers = -1): boolean {
 }
 
 /**
- * Cast a ray directly upwards, to find the distance to the nearest hole, or to the surface. This
- * will give us the distance back to the 'floor' for when the player falls through it.
+ * Cast a ray in a given direction, to find the distance to the nearest hole, or to the surface.
+ * This will give us the distance back to a floor/ceiling/wall, so that we can push the player
+ * back to where they belong.
  */
-function raycastUp(x: number, y: number): [number, number, any] {
+function raycast(x: number, y: number, dx: number, dy: number): [number, number, any] {
   let dist = Infinity;
   let type = -1;
   let payload = null;
 
   if (checkCollision(x, y)) {
-    // Ray cast directly upwards.
-    const ray: Raycast = { x, y, nx: 0, ny: -1 };
+    // Cast in the direction the object is moving.
+    const [nx, ny] = normalize([dx, dy]);
+    const ray: Raycast = { x, y, nx, ny };
 
     // Distance to the nearest hole.
-    let i = holes.length;
-    while (i > 0) {
-      i--;
-      const d = distToHole(ray, holes[i]);
+    for (const h of holes) {
+      const d = distToHole(ray, h);
       if (d < dist) {
         dist = d;
         type = 1;
-        payload = holes[i];
+        payload = h;
       }
     }
 
-    // Distance to the surface, if it hit no holes.
-    const d = y - getTerrainHeight(x);
-    if (d < dist) {
-      dist = d;
-      type = 0;
+    // Distance UP to the surface, if it hit no holes.
+    if (dy === -1) {
+      const d = y - getTerrainHeight(x);
+      if (d < dist) {
+        dist = d;
+        type = 0;
+      }
+    }
+
+    // Distance RIGHT to a surface segment.
+    if (dx === 1) {
+      let x1 = 0
+      let y1 = 0;
+      let x2 = x - (x % 10);
+      let y2 = 0;
+
+      while (x2 < WW) {
+        x1 = x2;
+        y1 = y2;
+        x2 = x1 + 10;
+        y2 = getTerrainHeight(x2);
+
+        if (y >= y1 && y <= y2) {
+          const d = lerp(x1, x2, unlerp(y, y1, y2)) - x;
+          if (d < dist) {
+            dist = d;
+            type = 0;
+          }
+        }
+      }
+    }
+
+    // Distance LEFT to a surface segment.
+    if (dx === -1) {
+      let x1 = 0
+      let y1 = 0;
+      let x2 = x - (x % 10) + 10;
+      let y2 = 0;
+
+      while (x2 > 0) {
+        x1 = x2;
+        y1 = y2;
+        x2 = x1 - 10;
+        y2 = getTerrainHeight(x2);
+
+        if (y >= y1 && y <= y2) {
+          const d = x - lerp(x1, x2, unlerp(y, y1, y2));
+          if (d < dist) {
+            dist = d;
+            type = 0;
+          }
+        }
+      }
     }
   }
 
@@ -1690,6 +1912,13 @@ function distToHole(ray: Raycast, hole: Hole, inner = false): number {
 }
 
 /**
+ * Determine if a given point is inside of a circle.
+ */
+function insideCircle(x: number, y: number, cx: number, cy: number, r2: number): boolean {
+  return sqdist(x, y, cx, cy) < r2;
+}
+
+/**
  * Determine if a given point is inside of a polygon.
  */
 // function insidePolygon(x: number, y: number, vs: Vertex[]): boolean {
@@ -1709,13 +1938,6 @@ function distToHole(ray: Raycast, hole: Hole, inner = false): number {
 
 //   return inside;
 // }
-
-/**
- * Determine if a given point is inside of a circle.
- */
-function insideCircle(x: number, y: number, cx: number, cy: number, r2: number): boolean {
-  return sqdist(x, y, cx, cy) < r2;
-}
 
 // ================================================================================================
 // ======== TERRAIN ===============================================================================
@@ -1737,6 +1959,7 @@ function initHeights() {
  * Generate noise-based heights for the terrain across the x-axis.
  */
 function initTerrain(home = false) {
+  holes = [];
   initMasks(home);
 
   let t = 0;
@@ -1745,12 +1968,29 @@ function initTerrain(home = false) {
   }
 
   if (home) {
+    // Initialise the water when the terrain is first setup, on the home screen.
     for (let i = 0; i < 6; i++) {
       initWater('o' + (6 - i), i * 20);
     }
+
+    // Add a few holes to make the home screen look more interesting.
     addHoles(800, WH - 720, 80);
     addHoles(190, WH - 550, 80);
     addHoles(1470, WH - 420, 80);
+  }
+}
+
+/**
+ * 
+ */
+function initTerrainDamage() {
+  for (let i = 0; i < 10; i++) {
+    const cx = rngi(1000, WW - 1000);
+    const cy = getTerrainHeight(cx);
+
+    if (checkCollision(cx, cy + 10)) {
+      addHoles(cx, cy, rngi(60, 120));
+    }
   }
 }
 
@@ -1844,8 +2084,6 @@ function addBlast(_: number, x: number, y: number, r: number, kb: number, ignore
   addExplosion(x, y, r * 0.9);
   shakeCamera();
 
-  holes.push({ x, y, r, r2: r * r });
-
   if (master) {
     const r2 = Math.pow(r * 1.5, 2);
 
@@ -1907,6 +2145,8 @@ function addHoles(x: number, y: number, r: number) {
   addHole(masks[2], x, y, r + 10);
   addHole(masks[3], x, y, r);
   addHole(masks[4], x, y, r + 10);
+
+  holes.push({ x, y, r, r2: r * r });
 }
 
 /**
@@ -1937,6 +2177,23 @@ function initSvg() {
   attr(svg3, 'height', WH);
 
   document.body.style.cursor = `url('data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="27" height="36"><path fill="#FF418B" stroke="#000" stroke-width="2" d="m20 25 2 6c0 2-4 4-7 4-2 0-3-2-5-5l-5 2c-3 0-4-6-4-15C1 9 1 3 3 1c2-1 7 2 13 8 6 4 10 9 10 11s-2 4-6 5Z"/><path fill="#FF859F" d="M4 5c1-3 3-1 5 1-5-2-5 6-4 22C3 21 3 8 4 5Z"/></svg>')}') 6 5, pointer`;
+}
+
+/**
+ * 
+ */
+function initMenu() {
+  text(menu1, 'START LOCAL GAME');
+  text(menu2, 'START REMOTE GAME');
+  text(menu3, 'JOIN REMOTE GAME');
+
+  menuShow(menu1, true);
+  menuShow(menu2, true);
+  menuShow(menu3, true);
+
+  menu1.onclick = startRegularGame;
+  menu2.onclick = startMultiplayerGame;
+  menu3.onclick = showCodeInput;
 }
 
 // ================================================================================================
@@ -1977,6 +2234,13 @@ function sqdist(x1: number, y1: number, x2: number, y2: number): number {
  */
 function lerp(x: number, y: number, a: number): number {
   return x * (1 - a) + y * a;
+}
+
+/**
+ * The inverse of linear interpolation.
+ */
+function unlerp(x: number, a: number, b: number): number {
+  return (x - a) / (b - a);
 }
 
 /**
@@ -2150,6 +2414,13 @@ function updateDestroyedElement() {
   destroyed = [];
 }
 
+/**
+ * 
+ */
+function menuShow(el: HTMLElement, show: boolean) {
+  el.style.opacity = show ? '1' : '0';
+}
+
 // ================================================================================================
 // ======== BITMAP TEXT ===========================================================================
 // ================================================================================================
@@ -2231,8 +2502,8 @@ function updateStateSync(delta: number) {
 /**
  * 
  */
-function socketInit() {
-  socket = new WebSocket("wss://relay.js13kgames.com/worms-13k/test");
+function socketInit(code: string) {
+  socket = new WebSocket('wss://relay.js13kgames.com/worms-13k/' + code);
   socket.onmessage = socketReceive;
 }
 
@@ -2293,8 +2564,10 @@ function socketRegister(cb: (data: string) => void) {
 socketRegister(() => {
   if (started) {
     // socketActionAcceptJoin();
-    socketAction(1, JSON.stringify([heights, players]));
+    socketAction(1, JSON.stringify([heights, players, holes]));
     socketActionGameState();
+    menuShow(menu4, false);
+    connected = true;
   }
 });
 
@@ -2303,7 +2576,18 @@ socketRegister((data) => {
   const json = JSON.parse(data);
   heights = json[0];
   players = json[1];
-  joinGame();
+
+  initTerrain(false);
+  unlockCamera();
+  menuShow(menu5, false);
+  document.body.classList.add('started');
+  started = true;
+  master = false;
+  connected = true;
+
+  for (const h of json[2]) {
+    addHoles(h.x, h.y, h.r);
+  }
 
   for (const p of players) {
     updatePlayerHealth(p);
@@ -2325,6 +2609,7 @@ socketRegister((data) => {
 // "03" End of turn.
 socketRegister(() => {
   master = true;
+  roundtime = 30;
   caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
 });
 

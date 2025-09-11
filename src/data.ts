@@ -12,6 +12,10 @@ export const ANIMATIONS: AnimationConfig[] = [
     ['M39 19c3 27 1 40-4 40-8 0-1-11-6-11s-3 11-13 11', 43, 45.5],
     ['M43 19c3 27 1 40-4 40-8 0-5-11-11-11s-7 11-16 11', 47, 49.5],
   ],
+  [
+    // Jump
+    ['M54 18c2 27-3 45-16 56', 55, 57.5],
+  ]
 ];
 
 export const WEAPONS: WeaponConfig[] = [

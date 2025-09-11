@@ -5,266 +5,278 @@
   </head>
   <body>
     <div id="id0"> <!-- #viewport -->
-      <div id="id1"> <!-- #world -->
-        <svg id="id2"> <!-- #svg -->
-          <defs>
+      <svg id="id2"> <!-- #svg -->
+        <defs>
 
-            <!-- Gradients -->
-            <linearGradient id="f0" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#401D00" />
-              <stop offset="40%" stop-color="#401D00" />
-              <stop offset="100%" stop-color="#000000" />
-            </linearGradient>
-            <linearGradient id="f1" x1="0" x2="1" y1="0" y2="0">
-              <stop offset="0%" stop-color="#00FF00" />
-              <stop offset="50%" stop-color="#FFFF00" />
-              <stop offset="100%" stop-color="#FF0000" />
-            </linearGradient>
-            <linearGradient id="f2" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#00B2E077" />
-              <stop offset="20%" stop-color="#0068E0" />
-              <stop offset="50%" stop-color="#002DC0" />
-              <stop offset="100%" stop-color="#0C0073" />
-            </linearGradient>
-            <linearGradient id="f3" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#622D00" />
-              <stop offset="100%" stop-color="#401D00" />
-            </linearGradient>
-            <linearGradient id="f4" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="#954400" />
-              <stop offset="75%" stop-color="#612C00" />
-            </linearGradient>
+          <!-- Gradients -->
+          <linearGradient id="f0" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#401D00" />
+            <stop offset="40%" stop-color="#401D00" />
+            <stop offset="100%" stop-color="#000000" />
+          </linearGradient>
+          <linearGradient id="f1" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stop-color="#00FF00" />
+            <stop offset="50%" stop-color="#FFFF00" />
+            <stop offset="100%" stop-color="#FF0000" />
+          </linearGradient>
+          <linearGradient id="f2" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#00B2E077" />
+            <stop offset="20%" stop-color="#0068E0" />
+            <stop offset="50%" stop-color="#002DC0" />
+            <stop offset="100%" stop-color="#0C0073" />
+          </linearGradient>
+          <linearGradient id="f3" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#622D00" />
+            <stop offset="100%" stop-color="#401D00" />
+          </linearGradient>
+          <linearGradient id="f4" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#954400" />
+            <stop offset="75%" stop-color="#612C00" />
+          </linearGradient>
 
-            <!-- Repeating water pattern/fill. -->
-            <pattern id="p0" x="0" y="0" width="0.016" height="1">
-              <path id="waves" fill="url(#f2)" d="M0,0 Q40,40 80,15 Q120,40 160,0 L160,100 L0,100 Z" />
-            </pattern>
+          <!-- Repeating water pattern/fill. -->
+          <pattern id="p0" x="0" y="0" width="0.016" height="1">
+            <path id="waves" fill="url(#f2)" d="M0,0 Q40,40 80,15 Q120,40 160,0 L160,100 L0,100 Z" />
+          </pattern>
 
-            <!-- Geometric pattern for the soil layers. -->
-            <pattern id="p1" width="100" height="100" patternUnits="userSpaceOnUse">
-              <path fill="#EE9200" opacity="0.1" d="M50 100L0 50V0l50 50 50-50h0v50l-50 50z" />
-              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="50" cy="70" />
-              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="0" cy="30" />
-              <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="100" cy="30" />
-              <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="50" cy="20" />
-              <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="100" cy="80" />
-              <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="0" cy="80" />
-            </pattern>
+          <!-- Geometric pattern for the soil layers. -->
+          <pattern id="p1" width="100" height="100" patternUnits="userSpaceOnUse">
+            <path fill="#EE9200" opacity="0.1" d="M50 100L0 50V0l50 50 50-50h0v50l-50 50z" />
+            <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="50" cy="70" />
+            <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="0" cy="30" />
+            <circle id="dot" stroke="#EE9200" opacity="0.1" stroke-width="25" r=".5" cx="100" cy="30" />
+            <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="50" cy="20" />
+            <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="100" cy="80" />
+            <circle id="dot" stroke="#200D00" opacity="0.1" stroke-width="25" r=".5" cx="0" cy="80" />
+          </pattern>
 
-            <!-- Hidden player prototype. -->
-            <g id="player">
-              <path fill="none" stroke="#EFB393" stroke-linecap="round" stroke-width="14" d="M51 19c3 27 1 40-4 40-8 0-8-11-18-11S21 59 7 59"/>
-              <ellipse cx="55" cy="21" fill="#FFF" rx="5" ry="10"/>
-              <ellipse cx="57.5" cy="22.5" fill="#2B2B2B" rx="2.5" ry="4.5"/>
-            </g>
-
-            <!-- Hidden missile prototype. -->
-            <g id="w0">
-              <g transform="scale(0.6) translate(-26 -16)">
-                <path fill="#24282F" d="M3 6c3-4 24-6 32-4 8 1 16 9 16 14s-9 14-16 15-29-1-32-4S0 9 3 6Z"/>
-                <path fill="#f00" d="M35 2c8 1 16 9 16 14s-9 13-16 15c-3-4-5-9-5-15s2-11 5-14Z"/>
-                <path fill="#FFC400" d="M48 9c2 2 3 5 3 7v2l-1 2-3 2c-3 0-5-3-5-6 0-4 2-7 5-7h1Z"/>
-              </g>
-            </g>
-
-            <!-- Shotgun image, used only for the weapons menu. -->
-            <g id="w1">
-              <path fill="#E6E9ED" d="M27 27 59 0l2 3-32 27z"/>
-              <path fill="#CCD1D9" d="m25 34 16-14 5 5-17 14z"/>
-              <path fill="#965353" d="M41 20 54 9l5 5-13 11z"/>
-              <path fill="#7F4545" d="m44 18 3-3 4 6-3 2zM49 13l3-2 5 5-3 3z"/>
-              <path stroke="#434A54" stroke-linecap="round" stroke-width="8" d="m28 36 5 3"/>
-              <path fill="#965353" d="m3 51 15-15h3l3-7 6-5 3 3-4 19-5 1-8 16-13-9a2 2 0 0 1 0-3Z"/>
-            </g>
-
-            <!-- Uzi image, used only for the weapons menu. -->
-            <g id="w2">
-              <use href="#w7" />
-            </g>
-
-            <!-- Hidden dynamite prototype. -->
-            <g id="w4">
-              <g transform="scale(0.6) translate(-27 -48)" fill="none">
-                <path fill="#9C0101" d="m33 58-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
-                <ellipse cx="42" cy="22" fill="#F43C1E" rx="12" ry="5"/>
-                <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M41 20c7-12-16-1-13-16"/>
-                <path fill="#9C0101" d="M3 58 0 22h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
-                <ellipse cx="12" cy="22" fill="#F43C1E" rx="12" ry="5"/>
-                <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M12 20C7 9 24 17 28 3"/>
-                <path fill="#DA2200" d="m18 62-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
-                <ellipse cx="27" cy="26" fill="#F43C1E" rx="12" ry="5"/>
-                <path stroke="#FFDB75" stroke-linecap="round" stroke-width="5" d="M27 24c4-6-5-12 1-21"/>
-              </g>
-            </g>
-
-            <!-- Hidden grenade prototype. -->
-            <g id="w5">
-              <g transform="scale(0.6) translate(-21 -17)">
-                <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="3" d="M21 2c12 0 19 6 19 19"/>
-                <path fill="#0B9B53" d="M16 0h9v5h-9z"/>
-                <ellipse cx="21" cy="18" fill="#06B559" rx="14" ry="16"/>
-                <path fill="#0B9B53" d="M7 17c0 8 5 14 12 14 6 0 11-6 11-14S25 3 20 2h1c8 0 14 7 14 16s-6 16-14 16S7 27 7 18v-1Z"/>
-                <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="4" d="M7 19h28"/>
-              </g>
-            </g>
-
-            <!-- Hidden holy hand grenade prototype. -->
-            <g id="w6">
-              <g transform="scale(0.5) translate(-32 -35)">
-                <path fill="#24282F" d="M64 40c-1-16-13-28-32-28S1 24 0 40c-1 10 3 18 11 23 0 0 8 6 21 6s21-6 21-6c8-5 12-13 11-23Z"/>
-                <path fill="#3B3B3B" d="M26 24h3c1-2 2-6 1-12l-9 1c3 4 3 10 5 11ZM38 24h-3c-1-2-2-6-1-12l9 1c-3 4-3 10-5 11Z"/>
-                <path fill="#E30000" d="M55 38c0-4-1-10-3-10h-2l-13 8c-5 4 2 13 8 14 6 0 10-6 10-12Z"/>
-                <path fill="#24282F" d="M41 42a4 4 0 0 0 7 0v2a4 4 0 1 1-7-2Z"/>
-                <path fill="#E30000" d="M9 38c0-4 1-10 3-10h2l13 8c5 4-2 13-8 14-6 0-10-6-10-12Z"/>
-                <path fill="#24282F" d="M16 42a4 4 0 0 0 7 0l1 2a4 4 0 1 1-8-2Z"/>
-                <path fill="#24282F" d="M2 30C-2 16 1 5 4 1l4-1c3 1 4 10 14 13M62 30c4-14 1-25-2-29l-4-1c-3 1-4 10-14 13"/>
-                <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 60c9 0 13-4 13-9 0 5 4 9 13 9"/>
-                <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-width="2" d="M57 6c1 9-3 13-3 14 0 2 1 3 4 5M7 6c-1 9 3 13 3 14 0 2-1 3-4 5"/>
-              </g>
-            </g>
-
-            <!-- Minigun image, used only for the weapons menu. -->
-            <g id="w7">
-              <path fill="none" stroke="#D00" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m40 41 7-8-6-5"/>
-              <path fill="none" stroke="#60001B" stroke-linecap="round" stroke-width="3" d="m36 33 3 2"/>
-              <path fill="#AC0000" d="m27 42 7-7 14 14-7 7z"/>
-              <path fill="#D00" d="M3 43 40 6l12 11-38 38z"/>
-              <path fill="#FF4D29" d="m44 9 7-7 4 5-7 7z"/>
-              <path fill="#D00" d="m47 12 7-7 1 2-7 7z"/>
-              <path fill="#8C000B" d="m3 43 5-5h14l25-25 5 4-38 38z"/>
-              <path fill="#FF4D29" d="m18 33 7-7 5 5-7 7zM39 7l-3-3-3 6 2 2z"/>
-              <path fill="#60001B" d="m42 55 5-5 7 6v2l-5 4h-1l-6-7ZM41 56l-4 4c-7-7-6-12-13-15l3-3 14 14Z"/>
-            </g>
-
-            <!-- Hidden homing missile prototype. -->
-            <g id="w8">
-              <use href="#w0" />
-            </g>
-
-            <!-- Hidden cluster bomb prototype. -->
-            <g id="w9">
-              <g transform="scale(0.6) translate(-21 -17)">
-                <path fill="#E57A06" d="M16 0h9v5h-9z"/>
-                <path fill="#FFB311" d="M21 34c14 0 14-7 14-16S35 2 21 2 7 9 7 18s0 16 14 16Z"/>
-                <path fill="#E57A06" d="M7 17c0 8 0 14 12 14 11 0 11-6 11-14S30 2 20 2h1c14 0 14 7 14 16s0 16-14 16S7 27 7 18v-1Z"/>
-                <path fill="#B33D00" stroke="#B33D00" stroke-linecap="round" stroke-width="4" d="M7 19h28"/>
-                <path fill="#E57A06" d="m4 3 9 3-4 5z"/>
-                <path fill="#B33D00" d="m9 23 4 5-8 3zM32 23l-3 5 9 2zM32 8l1 5 8-3z"/>
-                <path fill="#E57A06" d="m22 7 5 2 1-9zM18 7l-4 5 5 3z"/>
-                <path fill="#B33D00" d="m21 22-1 8 5-3z"/>
-              </g>
-            </g>
-
-            <!-- Hidden nyan cat prototype. -->
-            <g id="w10">
-              <g transform="scale(0.5) translate(-32 -35)">
-                <path fill="#9D9D9D" fill-rule="nonzero" d="M64 40c1 10-3 18-11 23 0 0-8 6-21 6s-21-6-21-6C3 58-1 50 0 40l2-10C-2 16 1 5 4 1l4-1c3 1 3 10 14 13l10-1 10 1C53 10 53 1 56 0l4 1c3 4 6 15 2 29l2 10Z"/>
-                <path fill="none" stroke="#222" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 55c0 4 13 4 13-4 0 8 12 8 13 4"/>
-                <path fill="none" stroke="#222" stroke-linecap="round" stroke-width="2" d="M57 6c1 9-3 13-3 14 0 2 1 3 4 5M7 6c-1 9 3 13 3 14 0 2-1 3-4 5"/>
-                <circle cx="10" cy="48" r="6" fill="#E8AC99"/>
-                <circle cx="54" cy="48" r="6" fill="#E8AC99"/>
-                <circle cx="20.5" cy="33.5" r="8.5" fill="#FFF"/>
-                <circle cx="43.5" cy="33.5" r="8.5" fill="#FFF"/>
-                <path fill="#222" d="M19 35a4 4 0 0 0 6 0l1 2a4 4 0 1 1-7-2ZM39 35a4 4 0 0 0 6 0l1 2a4 4 0 1 1-7-2Z"/>
-              </g>
-            </g>
-
-            <!-- Cricket bat image, used only for the weapons menu. -->
-            <g id="w11">
-              <path fill="#5C6670" d="M2 57c0-1.3 5.7-7 17-17l5 5C14 56.3 8.3 62 7 62c-2 0-5-3-5-5Z"/>
-              <path fill="#454F58" d="m14 45 5-5 5 5-5 5z"/>
-              <path fill="#D3A97F" d="M16 36c0-4 29-33 33-33 2.7 0 5.7 1 9 3 2 3.3 3 6.3 3 9 0 4-29 33-33 33s-12-8-12-12Z"/>
-            </g>
-
-            <!-- Hidden tracer line prototype. -->
-            <line id="id17" stroke="#fff" stroke-width="2" /><!-- #tracer -->
-
-            <!-- Hidden explosion prototype. -->
-            <circle id="id16" fill="#fff" cx="0" cy="0" /><!-- #explosion -->
-
-            <!-- Home screen logo mask -->
-            <g id="id18"><!-- #logo -->
-              <path fill="#fff" fill-rule="nonzero" d="M76 4v5l-9 50H44l-5-28-5 26-23 1L1 11V5l20-1 4 32 6-30h16l6 30 4-34 19 2Zm53 25a29 29 0 0 1-3 13 27 27 0 0 1-9 10 26 26 0 0 1-21 3 27 27 0 0 1-11-7 25 25 0 0 1-7-11 26 26 0 0 1 0-14A28 28 0 0 1 89 7a25 25 0 0 1 14-4l10 2c4 1 6 3 9 5l5 8 2 11Zm-18 1-1-3-1-3-2-2-4-1-3 1a8 8 0 0 0-4 4l-1 4v3l2 3 2 2 4 1a8 8 0 0 0 7-6l1-3Zm69-9-1 6a18 18 0 0 1-4 8l-5 4 9 14v5l-17 2-7-18-5 1-1 17h-17a9397 9397 0 0 0 1-56 53 53 0 0 1 17-4h6l9 1 8 4 5 7 2 9Zm-19 1v-3l-2-3-2-1-3-1a12 12 0 0 0-3 0l-1 16h5l3-2 2-2 1-4Zm93 11a183 183 0 0 1-1 23l-21 1a554 554 0 0 0 1-39l-1-2-1-1-2 2-1 2-1 3a51 51 0 0 0 0 6l1 4a259 259 0 0 1-2 25l-19 1a461 461 0 0 0 1-39v-2l-1-1-2 1-1 2-1 3a39 39 0 0 0 0 7l-1 30h-21a5871 5871 0 0 1 4-55l19-1v4a28 28 0 0 1 5-4l2-1 3-1h4l3 1 2 2 2 4a44 44 0 0 1 5-5 13 13 0 0 1 7-2l7 2 5 4 3 5a44 44 0 0 1 2 14v7Zm46 6-2 10-5 7-8 4-10 1-4-1a53 53 0 0 1-10-3l-4-1 2-16 8 4 8 1c4 0 5-1 6-2v-5l-3-1a351 351 0 0 1-12-2c-2 0-3-1-5-3l-3-5-1-5a19 19 0 0 1 7-15l8-5 8-1a61 61 0 0 1 13 2l4 1-2 16a50 50 0 0 0-12-2h-5l-3 1v4l2 2a36 36 0 0 0 9 0l6 1 4 4 3 3 1 6ZM116 76l-2 58-18-1 1-39-7 5-6-11v-5l13-8zM161 114l-2 9-5 7-7 4a33 33 0 0 1-28-5l2-16a30 30 0 0 0 7 4 31 31 0 0 0 8 1h3c2 0 3-1 3-2l1-3-3-2-4-2-3 1-3-1V99h6l3-1 3-2 1-3-1-2-2-2h-2a18 18 0 0 0-15 4l-3-15 8-4a30 30 0 0 1 18-1l8 4a18 18 0 0 1 6 15v3a15 15 0 0 1-5 7l3 2 2 3 1 3v4ZM215 82v5l-18 16 17 29-20 3-12-17-1 16-17 1 1-59 20 1-2 17 12-17z"/>
-            </g>
-
-            <!-- Crosshairs icon. -->
-            <g id="ch" transform="translate(-21, -21)">
-              <path fill="#0073FF" stroke="#000" stroke-width="2" d="M5.5 25a8 8 0 0 1-3.2-.5c-1.7-1.1-1.7-4.8 0-5.9.4-.3 1.4-.4 3-.4 1-6.4 5.8-11 12.8-12.7a8 8 0 0 1 .6-3.2c1-1.7 4.8-1.7 5.8 0 .4.4.5 1.3.5 2.7 6.4.9 10.3 5.5 11.1 13 1.8.1 3 .3 3.4.6 1.7 1.1 1.7 4.8 0 5.9-.5.3-1.7.4-3.6.4-1.3 6-5.3 10-11 11.2 0 1.8-.2 3-.6 3.4-1 1.7-4.7 1.7-5.8 0C18 39 18 38 18 36c-6.5-1.4-11-5.2-12.5-11ZM18.4 30c.2-1.9.4-3.1.7-3.6 1.1-1.7 4.1-1.7 5.2 0 .3.4.5 1.5.6 3 2.1-.9 3.8-2.5 4.5-4.7a9.2 9.2 0 0 1-3.1-.7c-1.7-1.1-1.7-4.1 0-5.2.5-.3 1.6-.5 3.5-.6-.6-3.5-2.3-5.4-5.2-5.8-.2 2-.4 3.4-.7 4-1.1 1.6-4.1 1.6-5.2 0-.3-.5-.5-1.6-.6-3.2-3.1 1-5 2.9-5.8 5.4 2 .2 3.4.5 4 .8 1.6 1.1 1.6 4 0 5.2-.6.3-1.8.5-3.7.6.8 2.5 2.6 4 5.8 4.8Z"/>
-            </g>
-
-            <!-- Boulder object (800 bytes) -->
-            <!-- <g id="boulder">
-              <path fill="#918B86" d="m18 520-9-23c-24-60 6-113 32-166l38-76c8-15 20-28 34-37l110-68L332 37c7-7 15-12 25-14l74-18c36-8 51-7 62 9 41 57 67 104 103 161l67 106c9 15 5 27 5 44-1 38 6 76 20 112 4 11 9 21 11 32 2 10-1 74-3 96-1 18-43 83-58 91-16 9-137 53-164 61s-143-19-204-28l-112-17c-32-5-64-1-82-34-22-38-41-78-58-118Z"/>
-              <path fill="#63696D" d="m158 672 112 17 71 12c-17-20-44-45-61-66-4-5-8-9-9-15-2-6 0-12 1-19 6-19 7-41 13-61-34 8-111 23-117 21-7-2-13-7-18-12A649 649 0 0 1 41 415v-17l12-90-12 23C15 384-15 437 9 497a969 969 0 0 0 67 141c18 32 50 29 82 34Z"/>
-              <path fill="#BAAB9F" d="M494 15c-8-9-23-7-38 7l-57 57c-4 3-5 8-5 13l6 116c0 4 2 7 4 10 20 24 91 137 112 137 20 0 56-81 75-80 3 0 19 1 35 6 15 4 21-16 18-31l-48-75c-36-57-62-103-102-160Z"/>
-              <path fill="#7C7D7C" d="M230 243c21-3 91-15 104-20 25-10 48-53 63-76 0 0 5 75 0 104-4 21-17 128-31 153l-81 136-120-120c-11-10-17-15-21-30-8-33-24-81-24-110s78-32 110-37ZM382 83c-8-10-10-24-7-36 2-10 23-29 30-36l-48 12c-10 2-18 7-25 14L223 150l159-67Z"/>
-              <path fill="#9E958E" d="M688 437c-11-27-17-55-19-84-36 25-56 57-114 65l-54 8c-18 5-35 19-63 22-20 1-70 0-62 11 7 11 52 34 63 43 16 12 30 27 43 43 7 8 17 27 29 33h10c5-1 10-5 14-9 43-38 92-70 144-94 5-3 11-6 14-11l2-9-7-18Z"/>
-              <path fill="#5A6367" d="m699 469-3-12c-1 4-4 8-9 12-14 11-69 28-130 81-40 35-40 40-49 78-14 63-36 86-40 90l6-1c27-8 148-52 164-61 15-8 57-74 58-91 2-22 5-86 3-96Z"/>
-            </g> -->
-
-          </defs>
-
-          <!-- Masks that are used to punch holes. -->
-          <mask id="m0" mask-type="luminance" /><!-- Background -->
-          <mask id="m1" mask-type="luminance" /><!-- Grass Dark -->
-          <mask id="m2" mask-type="luminance" /><!-- Grass Light -->
-          <mask id="m3" mask-type="luminance" /><!-- Soil Dark -->
-          <mask id="m4" mask-type="luminance" /><!-- Soil light -->
-
-          <!-- Background water layers. -->
-          <rect id="o1" fill="url(#p0)" x="0" height="100" />
-          <rect id="o2" fill="url(#p0)" x="0" height="100" />
-          <rect id="o3" fill="url(#p0)" x="0" height="100" />
-          
-          <!-- Terrain layers. -->
-          <path id="l0" fill="url(#f0)" mask="url(#m0)" />
-          <path id="l1" fill="#4ABE00" mask="url(#m1)" />
-          <path id="l2" fill="#8AE000" mask="url(#m2)" />
-          <path id="l3" fill="url(#f3)" mask="url(#m3)" />
-          <path id="l4" fill="url(#f4)" mask="url(#m4)" />
-          <path id="l5" fill="url(#p1" mask="url(#m4)" />
-        </svg>
-
-        <div id="id21"></div>
-
-        <svg id="id19">
-          <!-- Layer used to store all of the players. -->
-          <g id="id3" /> <!-- #playersContainer -->
-
-          <!-- Container for particle effects. -->
-          <g id="id4" /> <!-- #particles -->
-
-          <!-- Container for fired objects. -->
-          <g id="id5" /> <!-- #objects -->
-        </svg>
-
-        <svg id="id20">
-          <!-- Foreground water layers. -->
-          <rect id="o4" fill="url(#p0)" x="0" height="100" />
-          <rect id="o5" fill="url(#p0)" x="0" height="100" />
-          <rect id="o6" fill="url(#p0)" x="0" height="100" />
-
-          <!-- Crosshairs that show the direction the user is firing in. -->
-          <g id="id6"> <!-- #crosshairs -->
-            <use href="#ch" />
+          <!-- Hidden player prototype. -->
+          <g id="player">
+            <path fill="none" stroke="#EFB393" stroke-linecap="round" stroke-width="14" d="M51 19c3 27 1 40-4 40-8 0-8-11-18-11S21 59 7 59"/>
+            <ellipse cx="55" cy="21" fill="#FFF" rx="5" ry="10"/>
+            <ellipse cx="57.5" cy="22.5" fill="#2B2B2B" rx="2.5" ry="4.5"/>
           </g>
 
-          <!-- Crosshairs for locking onto a target. -->
-          <g id="id7"> <!-- targetlock -->
-            <use href="#ch" />
+          <!-- Hidden missile prototype. -->
+          <g id="w0">
+            <g transform="scale(0.6) translate(-26 -16)">
+              <path fill="#24282F" d="M3 6c3-4 24-6 32-4 8 1 16 9 16 14s-9 14-16 15-29-1-32-4S0 9 3 6Z"/>
+              <path fill="#f00" d="M35 2c8 1 16 9 16 14s-9 13-16 15c-3-4-5-9-5-15s2-11 5-14Z"/>
+              <path fill="#FFC400" d="M48 9c2 2 3 5 3 7v2l-1 2-3 2c-3 0-5-3-5-6 0-4 2-7 5-7h1Z"/>
+            </g>
           </g>
 
-          <!-- Powerbar that appears when the user is firing some weapons. -->
-          <g id="id8"> <!-- #powerbar -->
-            <rect x="0" y="-5" width="80" height="10" rx="2" fill="url(#f1)" mask="url(#m-pb)" />
+          <!-- Shotgun image, used only for the weapons menu. -->
+          <g id="w1">
+            <path fill="#E6E9ED" d="M27 27 59 0l2 3-32 27z"/>
+            <path fill="#CCD1D9" d="m25 34 16-14 5 5-17 14z"/>
+            <path fill="#965353" d="M41 20 54 9l5 5-13 11z"/>
+            <path fill="#7F4545" d="m44 18 3-3 4 6-3 2zM49 13l3-2 5 5-3 3z"/>
+            <path stroke="#434A54" stroke-linecap="round" stroke-width="8" d="m28 36 5 3"/>
+            <path fill="#965353" d="m3 51 15-15h3l3-7 6-5 3 3-4 19-5 1-8 16-13-9a2 2 0 0 1 0-3Z"/>
           </g>
 
-          <!-- Mask that is applied to the powerbar to make it 'grow' without changing the gradient. -->
-          <mask id="m-pb" mask-type="luminance">
-            <rect id="id9" x="0" y="-5" width="40" height="10" rx="2" fill="#fff" /><!-- #powerbarMask -->
-          </mask>
-        </svg>
-      </div>
+          <!-- Uzi image, used only for the weapons menu. -->
+          <g id="w2">
+            <use href="#w7" />
+          </g>
+
+          <!-- Hidden dynamite prototype. -->
+          <g id="w4">
+            <g transform="scale(0.6) translate(-27 -48)" fill="none">
+              <path fill="#9C0101" d="m33 58-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+              <ellipse cx="42" cy="22" fill="#F43C1E" rx="12" ry="5"/>
+              <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M41 20c7-12-16-1-13-16"/>
+              <path fill="#9C0101" d="M3 58 0 22h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+              <ellipse cx="12" cy="22" fill="#F43C1E" rx="12" ry="5"/>
+              <path stroke="#F0C653" stroke-linecap="round" stroke-width="5" d="M12 20C7 9 24 17 28 3"/>
+              <path fill="#DA2200" d="m18 62-3-36h24l-3 36c0 2-4 4-9 4s-9-2-9-4Z"/>
+              <ellipse cx="27" cy="26" fill="#F43C1E" rx="12" ry="5"/>
+              <path stroke="#FFDB75" stroke-linecap="round" stroke-width="5" d="M27 24c4-6-5-12 1-21"/>
+            </g>
+          </g>
+
+          <!-- Hidden grenade prototype. -->
+          <g id="w5">
+            <g transform="scale(0.6) translate(-21 -17)">
+              <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="3" d="M21 2c12 0 19 6 19 19"/>
+              <path fill="#0B9B53" d="M16 0h9v5h-9z"/>
+              <ellipse cx="21" cy="18" fill="#06B559" rx="14" ry="16"/>
+              <path fill="#0B9B53" d="M7 17c0 8 5 14 12 14 6 0 11-6 11-14S25 3 20 2h1c8 0 14 7 14 16s-6 16-14 16S7 27 7 18v-1Z"/>
+              <path fill="none" stroke="#08846A" stroke-linecap="round" stroke-width="4" d="M7 19h28"/>
+            </g>
+          </g>
+
+          <!-- Hidden holy hand grenade prototype. -->
+          <g id="w6">
+            <g transform="scale(0.5) translate(-32 -35)">
+              <path fill="#24282F" d="M64 40c-1-16-13-28-32-28S1 24 0 40c-1 10 3 18 11 23 0 0 8 6 21 6s21-6 21-6c8-5 12-13 11-23Z"/>
+              <path fill="#3B3B3B" d="M26 24h3c1-2 2-6 1-12l-9 1c3 4 3 10 5 11ZM38 24h-3c-1-2-2-6-1-12l9 1c-3 4-3 10-5 11Z"/>
+              <path fill="#E30000" d="M55 38c0-4-1-10-3-10h-2l-13 8c-5 4 2 13 8 14 6 0 10-6 10-12Z"/>
+              <path fill="#24282F" d="M41 42a4 4 0 0 0 7 0v2a4 4 0 1 1-7-2Z"/>
+              <path fill="#E30000" d="M9 38c0-4 1-10 3-10h2l13 8c5 4-2 13-8 14-6 0-10-6-10-12Z"/>
+              <path fill="#24282F" d="M16 42a4 4 0 0 0 7 0l1 2a4 4 0 1 1-8-2Z"/>
+              <path fill="#24282F" d="M2 30C-2 16 1 5 4 1l4-1c3 1 4 10 14 13M62 30c4-14 1-25-2-29l-4-1c-3 1-4 10-14 13"/>
+              <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 60c9 0 13-4 13-9 0 5 4 9 13 9"/>
+              <path stroke="#9D9D9D" fill="none" stroke-linecap="round" stroke-width="2" d="M57 6c1 9-3 13-3 14 0 2 1 3 4 5M7 6c-1 9 3 13 3 14 0 2-1 3-4 5"/>
+            </g>
+          </g>
+
+          <!-- Minigun image, used only for the weapons menu. -->
+          <g id="w7">
+            <path fill="none" stroke="#D00" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="m40 41 7-8-6-5"/>
+            <path fill="none" stroke="#60001B" stroke-linecap="round" stroke-width="3" d="m36 33 3 2"/>
+            <path fill="#AC0000" d="m27 42 7-7 14 14-7 7z"/>
+            <path fill="#D00" d="M3 43 40 6l12 11-38 38z"/>
+            <path fill="#FF4D29" d="m44 9 7-7 4 5-7 7z"/>
+            <path fill="#D00" d="m47 12 7-7 1 2-7 7z"/>
+            <path fill="#8C000B" d="m3 43 5-5h14l25-25 5 4-38 38z"/>
+            <path fill="#FF4D29" d="m18 33 7-7 5 5-7 7zM39 7l-3-3-3 6 2 2z"/>
+            <path fill="#60001B" d="m42 55 5-5 7 6v2l-5 4h-1l-6-7ZM41 56l-4 4c-7-7-6-12-13-15l3-3 14 14Z"/>
+          </g>
+
+          <!-- Hidden homing missile prototype. -->
+          <g id="w8">
+            <use href="#w0" />
+          </g>
+
+          <!-- Hidden cluster bomb prototype. -->
+          <g id="w9">
+            <g transform="scale(0.6) translate(-21 -17)">
+              <path fill="#E57A06" d="M16 0h9v5h-9z"/>
+              <path fill="#FFB311" d="M21 34c14 0 14-7 14-16S35 2 21 2 7 9 7 18s0 16 14 16Z"/>
+              <path fill="#E57A06" d="M7 17c0 8 0 14 12 14 11 0 11-6 11-14S30 2 20 2h1c14 0 14 7 14 16s0 16-14 16S7 27 7 18v-1Z"/>
+              <path fill="#B33D00" stroke="#B33D00" stroke-linecap="round" stroke-width="4" d="M7 19h28"/>
+              <path fill="#E57A06" d="m4 3 9 3-4 5z"/>
+              <path fill="#B33D00" d="m9 23 4 5-8 3zM32 23l-3 5 9 2zM32 8l1 5 8-3z"/>
+              <path fill="#E57A06" d="m22 7 5 2 1-9zM18 7l-4 5 5 3z"/>
+              <path fill="#B33D00" d="m21 22-1 8 5-3z"/>
+            </g>
+          </g>
+
+          <!-- Hidden nyan cat prototype. -->
+          <g id="w10">
+            <g transform="scale(0.5) translate(-32 -35)">
+              <path fill="#9D9D9D" fill-rule="nonzero" d="M64 40c1 10-3 18-11 23 0 0-8 6-21 6s-21-6-21-6C3 58-1 50 0 40l2-10C-2 16 1 5 4 1l4-1c3 1 3 10 14 13l10-1 10 1C53 10 53 1 56 0l4 1c3 4 6 15 2 29l2 10Z"/>
+              <path fill="none" stroke="#222" stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 55c0 4 13 4 13-4 0 8 12 8 13 4"/>
+              <path fill="none" stroke="#222" stroke-linecap="round" stroke-width="2" d="M57 6c1 9-3 13-3 14 0 2 1 3 4 5M7 6c-1 9 3 13 3 14 0 2-1 3-4 5"/>
+              <circle cx="10" cy="48" r="6" fill="#E8AC99"/>
+              <circle cx="54" cy="48" r="6" fill="#E8AC99"/>
+              <circle cx="20.5" cy="33.5" r="8.5" fill="#FFF"/>
+              <circle cx="43.5" cy="33.5" r="8.5" fill="#FFF"/>
+              <path fill="#222" d="M19 35a4 4 0 0 0 6 0l1 2a4 4 0 1 1-7-2ZM39 35a4 4 0 0 0 6 0l1 2a4 4 0 1 1-7-2Z"/>
+            </g>
+          </g>
+
+          <!-- Cricket bat image, used only for the weapons menu. -->
+          <g id="w11">
+            <path fill="#5C6670" d="M2 57c0-1.3 5.7-7 17-17l5 5C14 56.3 8.3 62 7 62c-2 0-5-3-5-5Z"/>
+            <path fill="#454F58" d="m14 45 5-5 5 5-5 5z"/>
+            <path fill="#D3A97F" d="M16 36c0-4 29-33 33-33 2.7 0 5.7 1 9 3 2 3.3 3 6.3 3 9 0 4-29 33-33 33s-12-8-12-12Z"/>
+          </g>
+
+          <!-- Hidden tracer line prototype. -->
+          <line id="id17" stroke="#fff" stroke-width="2" /><!-- #tracer -->
+
+          <!-- Hidden explosion prototype. -->
+          <circle id="id16" fill="#fff" cx="0" cy="0" /><!-- #explosion -->
+
+          <!-- Home screen logo mask -->
+          <g id="id18"><!-- #logo -->
+            <path fill="#fff" fill-rule="nonzero" d="M76 4v5l-9 50H44l-5-28-5 26-23 1L1 11V5l20-1 4 32 6-30h16l6 30 4-34 19 2Zm53 25a29 29 0 0 1-3 13 27 27 0 0 1-9 10 26 26 0 0 1-21 3 27 27 0 0 1-11-7 25 25 0 0 1-7-11 26 26 0 0 1 0-14A28 28 0 0 1 89 7a25 25 0 0 1 14-4l10 2c4 1 6 3 9 5l5 8 2 11Zm-18 1-1-3-1-3-2-2-4-1-3 1a8 8 0 0 0-4 4l-1 4v3l2 3 2 2 4 1a8 8 0 0 0 7-6l1-3Zm69-9-1 6a18 18 0 0 1-4 8l-5 4 9 14v5l-17 2-7-18-5 1-1 17h-17a9397 9397 0 0 0 1-56 53 53 0 0 1 17-4h6l9 1 8 4 5 7 2 9Zm-19 1v-3l-2-3-2-1-3-1a12 12 0 0 0-3 0l-1 16h5l3-2 2-2 1-4Zm93 11a183 183 0 0 1-1 23l-21 1a554 554 0 0 0 1-39l-1-2-1-1-2 2-1 2-1 3a51 51 0 0 0 0 6l1 4a259 259 0 0 1-2 25l-19 1a461 461 0 0 0 1-39v-2l-1-1-2 1-1 2-1 3a39 39 0 0 0 0 7l-1 30h-21a5871 5871 0 0 1 4-55l19-1v4a28 28 0 0 1 5-4l2-1 3-1h4l3 1 2 2 2 4a44 44 0 0 1 5-5 13 13 0 0 1 7-2l7 2 5 4 3 5a44 44 0 0 1 2 14v7Zm46 6-2 10-5 7-8 4-10 1-4-1a53 53 0 0 1-10-3l-4-1 2-16 8 4 8 1c4 0 5-1 6-2v-5l-3-1a351 351 0 0 1-12-2c-2 0-3-1-5-3l-3-5-1-5a19 19 0 0 1 7-15l8-5 8-1a61 61 0 0 1 13 2l4 1-2 16a50 50 0 0 0-12-2h-5l-3 1v4l2 2a36 36 0 0 0 9 0l6 1 4 4 3 3 1 6ZM116 76l-2 58-18-1 1-39-7 5-6-11v-5l13-8zM161 114l-2 9-5 7-7 4a33 33 0 0 1-28-5l2-16a30 30 0 0 0 7 4 31 31 0 0 0 8 1h3c2 0 3-1 3-2l1-3-3-2-4-2-3 1-3-1V99h6l3-1 3-2 1-3-1-2-2-2h-2a18 18 0 0 0-15 4l-3-15 8-4a30 30 0 0 1 18-1l8 4a18 18 0 0 1 6 15v3a15 15 0 0 1-5 7l3 2 2 3 1 3v4ZM215 82v5l-18 16 17 29-20 3-12-17-1 16-17 1 1-59 20 1-2 17 12-17z"/>
+          </g>
+
+          <!-- Crosshairs icon. -->
+          <g id="ch" transform="translate(-21, -21)" fill="#FFC300">
+            <path stroke="#000" stroke-width="2" d="M5.5 25a8 8 0 0 1-3.2-.5c-1.7-1.1-1.7-4.8 0-5.9.4-.3 1.4-.4 3-.4 1-6.4 5.8-11 12.8-12.7a8 8 0 0 1 .6-3.2c1-1.7 4.8-1.7 5.8 0 .4.4.5 1.3.5 2.7 6.4.9 10.3 5.5 11.1 13 1.8.1 3 .3 3.4.6 1.7 1.1 1.7 4.8 0 5.9-.5.3-1.7.4-3.6.4-1.3 6-5.3 10-11 11.2 0 1.8-.2 3-.6 3.4-1 1.7-4.7 1.7-5.8 0C18 39 18 38 18 36c-6.5-1.4-11-5.2-12.5-11ZM18.4 30c.2-1.9.4-3.1.7-3.6 1.1-1.7 4.1-1.7 5.2 0 .3.4.5 1.5.6 3 2.1-.9 3.8-2.5 4.5-4.7a9.2 9.2 0 0 1-3.1-.7c-1.7-1.1-1.7-4.1 0-5.2.5-.3 1.6-.5 3.5-.6-.6-3.5-2.3-5.4-5.2-5.8-.2 2-.4 3.4-.7 4-1.1 1.6-4.1 1.6-5.2 0-.3-.5-.5-1.6-.6-3.2-3.1 1-5 2.9-5.8 5.4 2 .2 3.4.5 4 .8 1.6 1.1 1.6 4 0 5.2-.6.3-1.8.5-3.7.6.8 2.5 2.6 4 5.8 4.8Z"/>
+          </g>
+
+          <!-- Boulder object (800 bytes) -->
+          <!-- <g id="boulder">
+            <path fill="#918B86" d="m18 520-9-23c-24-60 6-113 32-166l38-76c8-15 20-28 34-37l110-68L332 37c7-7 15-12 25-14l74-18c36-8 51-7 62 9 41 57 67 104 103 161l67 106c9 15 5 27 5 44-1 38 6 76 20 112 4 11 9 21 11 32 2 10-1 74-3 96-1 18-43 83-58 91-16 9-137 53-164 61s-143-19-204-28l-112-17c-32-5-64-1-82-34-22-38-41-78-58-118Z"/>
+            <path fill="#63696D" d="m158 672 112 17 71 12c-17-20-44-45-61-66-4-5-8-9-9-15-2-6 0-12 1-19 6-19 7-41 13-61-34 8-111 23-117 21-7-2-13-7-18-12A649 649 0 0 1 41 415v-17l12-90-12 23C15 384-15 437 9 497a969 969 0 0 0 67 141c18 32 50 29 82 34Z"/>
+            <path fill="#BAAB9F" d="M494 15c-8-9-23-7-38 7l-57 57c-4 3-5 8-5 13l6 116c0 4 2 7 4 10 20 24 91 137 112 137 20 0 56-81 75-80 3 0 19 1 35 6 15 4 21-16 18-31l-48-75c-36-57-62-103-102-160Z"/>
+            <path fill="#7C7D7C" d="M230 243c21-3 91-15 104-20 25-10 48-53 63-76 0 0 5 75 0 104-4 21-17 128-31 153l-81 136-120-120c-11-10-17-15-21-30-8-33-24-81-24-110s78-32 110-37ZM382 83c-8-10-10-24-7-36 2-10 23-29 30-36l-48 12c-10 2-18 7-25 14L223 150l159-67Z"/>
+            <path fill="#9E958E" d="M688 437c-11-27-17-55-19-84-36 25-56 57-114 65l-54 8c-18 5-35 19-63 22-20 1-70 0-62 11 7 11 52 34 63 43 16 12 30 27 43 43 7 8 17 27 29 33h10c5-1 10-5 14-9 43-38 92-70 144-94 5-3 11-6 14-11l2-9-7-18Z"/>
+            <path fill="#5A6367" d="m699 469-3-12c-1 4-4 8-9 12-14 11-69 28-130 81-40 35-40 40-49 78-14 63-36 86-40 90l6-1c27-8 148-52 164-61 15-8 57-74 58-91 2-22 5-86 3-96Z"/>
+          </g> -->
+
+        </defs>
+
+        <!-- Masks that are used to punch holes. -->
+        <mask id="m0" mask-type="luminance" /><!-- Background -->
+        <mask id="m1" mask-type="luminance" /><!-- Grass Dark -->
+        <mask id="m2" mask-type="luminance" /><!-- Grass Light -->
+        <mask id="m3" mask-type="luminance" /><!-- Soil Dark -->
+        <mask id="m4" mask-type="luminance" /><!-- Soil light -->
+
+        <!-- Background water layers. -->
+        <rect id="o1" fill="url(#p0)" x="0" height="100" />
+        <rect id="o2" fill="url(#p0)" x="0" height="100" />
+        <rect id="o3" fill="url(#p0)" x="0" height="100" />
+        
+        <!-- Terrain layers. -->
+        <path id="l0" fill="url(#f0)" mask="url(#m0)" />
+        <path id="l1" fill="#4ABE00" mask="url(#m1)" />
+        <path id="l2" fill="#8AE000" mask="url(#m2)" />
+        <path id="l3" fill="url(#f3)" mask="url(#m3)" />
+        <path id="l4" fill="url(#f4)" mask="url(#m4)" />
+        <path id="l5" fill="url(#p1)" mask="url(#m4)" />
+      </svg>
+
+      <div id="id21"></div>
+
+      <svg id="id19">
+        <!-- Layer used to store all of the players. -->
+        <g id="id3" /> <!-- #playersContainer -->
+
+        <!-- Container for particle effects. -->
+        <g id="id4" /> <!-- #particles -->
+
+        <!-- Container for fired objects. -->
+        <g id="id5" /> <!-- #objects -->
+      </svg>
+
+      <svg id="id20">
+        <!-- Foreground water layers. -->
+        <rect id="o4" fill="url(#p0)" x="0" height="100" />
+        <rect id="o5" fill="url(#p0)" x="0" height="100" />
+        <rect id="o6" fill="url(#p0)" x="0" height="100" />
+
+        <!-- Crosshairs that show the direction the user is firing in. -->
+        <g id="id6"> <!-- #crosshairs -->
+          <g transform="translate(-21, -21)">
+            <path stroke="#000" stroke-width="2" d="M5.5 25a8 8 0 0 1-3.2-.5c-1.7-1.1-1.7-4.8 0-5.9.4-.3 1.4-.4 3-.4 1-6.4 5.8-11 12.8-12.7a8 8 0 0 1 .6-3.2c1-1.7 4.8-1.7 5.8 0 .4.4.5 1.3.5 2.7 6.4.9 10.3 5.5 11.1 13 1.8.1 3 .3 3.4.6 1.7 1.1 1.7 4.8 0 5.9-.5.3-1.7.4-3.6.4-1.3 6-5.3 10-11 11.2 0 1.8-.2 3-.6 3.4-1 1.7-4.7 1.7-5.8 0C18 39 18 38 18 36c-6.5-1.4-11-5.2-12.5-11ZM18.4 30c.2-1.9.4-3.1.7-3.6 1.1-1.7 4.1-1.7 5.2 0 .3.4.5 1.5.6 3 2.1-.9 3.8-2.5 4.5-4.7a9.2 9.2 0 0 1-3.1-.7c-1.7-1.1-1.7-4.1 0-5.2.5-.3 1.6-.5 3.5-.6-.6-3.5-2.3-5.4-5.2-5.8-.2 2-.4 3.4-.7 4-1.1 1.6-4.1 1.6-5.2 0-.3-.5-.5-1.6-.6-3.2-3.1 1-5 2.9-5.8 5.4 2 .2 3.4.5 4 .8 1.6 1.1 1.6 4 0 5.2-.6.3-1.8.5-3.7.6.8 2.5 2.6 4 5.8 4.8Z"/>
+          </g>
+        </g>
+
+        <!-- Crosshairs for locking onto a target. -->
+        <g id="id7" fill="#fc4"> <!-- targetlock -->
+          <g transform="translate(-21, -21)">
+            <path stroke="#000" stroke-width="2" d="M5.5 25a8 8 0 0 1-3.2-.5c-1.7-1.1-1.7-4.8 0-5.9.4-.3 1.4-.4 3-.4 1-6.4 5.8-11 12.8-12.7a8 8 0 0 1 .6-3.2c1-1.7 4.8-1.7 5.8 0 .4.4.5 1.3.5 2.7 6.4.9 10.3 5.5 11.1 13 1.8.1 3 .3 3.4.6 1.7 1.1 1.7 4.8 0 5.9-.5.3-1.7.4-3.6.4-1.3 6-5.3 10-11 11.2 0 1.8-.2 3-.6 3.4-1 1.7-4.7 1.7-5.8 0C18 39 18 38 18 36c-6.5-1.4-11-5.2-12.5-11ZM18.4 30c.2-1.9.4-3.1.7-3.6 1.1-1.7 4.1-1.7 5.2 0 .3.4.5 1.5.6 3 2.1-.9 3.8-2.5 4.5-4.7a9.2 9.2 0 0 1-3.1-.7c-1.7-1.1-1.7-4.1 0-5.2.5-.3 1.6-.5 3.5-.6-.6-3.5-2.3-5.4-5.2-5.8-.2 2-.4 3.4-.7 4-1.1 1.6-4.1 1.6-5.2 0-.3-.5-.5-1.6-.6-3.2-3.1 1-5 2.9-5.8 5.4 2 .2 3.4.5 4 .8 1.6 1.1 1.6 4 0 5.2-.6.3-1.8.5-3.7.6.8 2.5 2.6 4 5.8 4.8Z"/>
+          </g>
+        </g>
+
+        <!-- Powerbar that appears when the user is firing some weapons. -->
+        <g id="id8"> <!-- #powerbar -->
+          <rect x="0" y="-5" width="80" height="10" rx="2" fill="url(#f1)" mask="url(#m-pb)" />
+        </g>
+
+        <!-- Arrow that appears above the active player. -->
+        <g id="id27"> <!-- #arrow -->
+          <path stroke="#000" stroke-width="2" d="M8.7 14c-3 .7-9-9.1-7.4-11.5 1.4-2 11.8-1.8 14-.4 1.5 1 .5 3.3-1.6 6.6-1.8 2.7-3.7 5-5 5.2Z"/>
+        </g>
+
+        <!-- Muzzle flash. -->
+        <g id="id28">
+          <path transform="translate(-15 -15)" fill="#FFD553" d="M16 23c-2 0-4 3-5 7 0-5 0-8-2-9-1-1-5-1-9 1 4-3 6-5 6-7s-2-5-6-7c5 2 8 2 9 1 2-1 3-4 2-9 1 5 3 7 5 8 2 0 5-1 8-5-3 4-4 7-3 9s4 3 9 3c-5 0-8 1-9 3-1 3 0 5 3 9-3-3-6-5-8-4Z"/>
+        </g>
+
+        <!-- Mask that is applied to the powerbar to make it 'grow' without changing the gradient. -->
+        <mask id="m-pb" mask-type="luminance">
+          <rect id="id9" x="0" y="-5" width="40" height="10" rx="2" fill="#fff" /><!-- #powerbarMask -->
+        </mask>
+      </svg>
     </div>
 
     <!-- UI: Weapons -->
@@ -284,7 +296,19 @@
     <div id="id14"></div><!-- #captions -->
 
     <!-- UI: Home screen messages. -->
-     <div id="id22"></div>
+    <div id="menu">
+      <div id="id25"></div><!-- #menu4 -->
+    </div>
+    <div id="menu">
+      <div id="id26"></div><!-- #menu5 -->
+    </div>
+    <div id="menu">
+      <div id="id22"></div><!-- #menu1 -->
+      <div id="id23"></div><!-- #menu2 -->
+      <div id="id24"></div><!-- #menu3 -->
+    </div>
+
+    <div id="id1"></div>
     
     <!-- Hidden game elements that are cloned as neeeded. -->
     <div id="hide">

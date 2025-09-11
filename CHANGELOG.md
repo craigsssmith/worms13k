@@ -1,11 +1,28 @@
-## To Do
+## Day 29 (11th September)
 
-- Fix collisions
-- Title screen
-- Game over screen
-- Upload to js13k site
-- Better jump mechanics
-- Round timer
+- Added some pre-existing holes when the game starts.
+- Added muzzle flashes.
+- Added jump animation.
+- Prevent scrolling when selecting weapons.
+- Added timer, skipping a turn after 30 seconds.
+- Sound effects for gunshots and grenade bounces.
+
+> 13239 bytes (99.5%)
+
+## Day 28 (10th September)
+
+- Added title screen.
+- Added code-based multiplayer game setup.
+- Added game over screen.
+- Adjusted nyan cats to be faster and more accurate.
+- Randomise wind when the game starts.
+- Added 'current player' arrow.
+- Crosshairs now match the player colour.
+- Improved player collision detection.
+- Added bounce-back to jumping.
+- Added pause after jumping.
+
+> 12864 bytes (96.6%)
 
 ## Day 27 (9th September)
 
@@ -16,7 +33,7 @@
 - Performance improvements.
 - Removed reload hack when viewport resizes.
 
-> 12098 bytes (90.9%)
+> 12083 bytes (90.8%)
 
 ## Day 26 (8th September)
 

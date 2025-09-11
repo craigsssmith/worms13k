@@ -65,6 +65,7 @@ export type Player = Position & {
   hp: number;
   ix: number;
   jumping: boolean;
+  jumped?: boolean;
   dx: number;
   dy: number;
   r: number;
@@ -82,6 +83,8 @@ export type Player = Position & {
   frame?: number;
   tx?: number;
   ty?: number;
+  cooldown?: number;
+  hurt?: number;
 };
 
 export type Elements = {

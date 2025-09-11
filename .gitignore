@@ -23,3 +23,4 @@ dist.tar.gz
 *.njsproj
 *.sln
 *.sw?
+.lab13
