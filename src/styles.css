@@ -176,8 +176,8 @@ body,
 }
 
 @keyframes waves {
-  from { d: path('M0,0 Q40,50 80,15 Q120,50 160,0 L160,100 L0,100 Z') }
-  to { d: path('M0,15 Q40,50 80,0 Q120,50 160,15 L160,100 L0,100 Z') }
+  from { d: path('M0,0 Q40,50 80,15 Q120,50 160,0 L160,200 L0,200 Z') }
+  to { d: path('M0,15 Q40,50 80,0 Q120,50 160,15 L160,200 L0,200 Z') }
 }
 
 /* id10=#weapons, id11=#weaponLabel, id14=#captions */
@@ -200,19 +200,15 @@ body,
 
 #menu {
   position: fixed;
-  top: 100px;
+  top: calc(75px + max(75px, 5vh));
   left: 50%;
-  height: 200px;
+  height: 150px;
   transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
 }
 
 #id22, #id23, #id24, #id25, #id26 {
   opacity: 0;
   padding: 8px 12px;
   transition: opacity .5s ease;
+  margin-bottom: 20px;
 }

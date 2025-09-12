@@ -8,6 +8,39 @@ import './styles.css';
 const docElem = document.getElementById.bind(document);
 const docElems = (count: number) => new Array(count).fill(0).map((_, i) => docElem('id' + i)!);
 
+// Get references to all of the 'idXX' elements in the page.
+const [
+  ch,
+  timer,
+  svg,
+  playersContainer,
+  particles,
+  objects,
+  crosshairs,
+  targetlock,
+  powerbar,
+  powerbarMask,
+  weapons,
+  weaponLabel,
+  windleft,
+  windright,
+  captions,
+  glyph,
+  explosion,
+  tracer,
+  logo,
+  svg2,
+  svg3,
+  names,
+  menu1,
+  menu2,
+  menu3,
+  menu4,
+  menu5,
+  arrow,
+  muzzle,
+] = docElems(29);
+
 // Constants.
 const NAMES = 'ALICE|CLIVE|BORIS|RICHARD|MIKE|SARAH|PAULINE|HENRY'.split('|');
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 \'!:-';
@@ -41,9 +74,6 @@ let time = 0;
 let vw = innerWidth;
 let vh = innerHeight;
 
-// Get references to all of the 'idXX' elements in the page.
-const [ch, timer, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names, menu1, menu2, menu3, menu4, menu5, arrow, muzzle] = docElems(29);
-
 // Keep track of the holes and tunnels in the terrain.
 let holes: Hole[] = [];
 
@@ -71,7 +101,10 @@ let activeTeam = 0;
 let activeWeapon = 0;
 let muzzlettl = 0;
 let gameoverttl = 0;
+let captionsttl = 0;
 let roundtime = 0;
+let timerstr = '';
+let paused = false;
 
 // Current wind state.
 let windSpeed = 0;
@@ -85,9 +118,9 @@ let tracers: Map<number, Tracer> = new Map();
 
 // Camera position, and object that it's locked to.
 let camera: Camera = {
-  x: 850,
-  y: WH,
-  to: { x: 850, y: WH },
+  x: 1350,
+  y: WH - 600,
+  to: { x: 1350, y: WH - 600 },
   free: true,
   ttl: 0,
 };
@@ -95,6 +128,13 @@ let camera: Camera = {
 // DOM elements for game entities.
 let destroyed: number[] = [];
 let elements: Element[] = [];
+
+// Multiplayer state.
+let socket: WebSocket | null = null;
+let syncttl = 0;
+let pending: Map<string, string> = new Map();
+let sent: Map<string, string> = new Map();
+let callbacks: ((data: string) => void)[] = [];
 
 // Initialise everything required for the title screen.
 setTimeout(initGame);
@@ -250,6 +290,7 @@ function startRegularGame() {
  */
 function startMultiplayerGame() {
   startRegularGame();
+  started = false;
   connected = false;
   code = new Array(8).fill(0).map(() => rngi(0, 10));
   socketInit(code.join(''));
@@ -282,20 +323,24 @@ function joinMultiplayerGame() {
 /**
  * 
  */
-let timerstr = '';
 function updateTimer(delta: number) {
-  if (started) {
-    roundtime -= delta / 1000;
-    const str = ('' + Math.ceil(roundtime)).padStart(2, '0')
+  if (!paused) {
+    if (started) {
+      roundtime -= delta / 1000;
+      const str = ('' + Math.ceil(roundtime)).padStart(2, '0')
 
-    if (master && roundtime <= 0) {
-      activateNextTeam();
-      caption('OOPS, YOU RAN OUT OF TIME!')
-    }
-    
-    if (timerstr !== str) {
-      timerstr = str;
-      text(timer, str);
+      if (master && roundtime <= 0) {
+        activateNextTeam();
+        caption('OOPS, YOU RAN OUT OF TIME!')
+      }
+      
+      if (timerstr !== str) {
+        timerstr = str;
+        console.log(str, timerstr);
+        text(timer, str);
+      }
+    } else {
+      text(timer, '30');
     }
   }
 }
@@ -374,7 +419,7 @@ function initPlayer(i: number): Player {
   let x = -1;
   while (x === -1) {
     const cx = Math.random() * (WW - 500) + 250;
-    if (getTerrainHeight(cx) < WH - 110) {
+    if (getTerrainHeight(cx) < WH - 210) {
       x = cx;
     }
   }
@@ -525,14 +570,10 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       }
 
       // If the player falls into the ocean, mark them as dead and gone immediately.
-      if (master && p.y >= WH - 100) {
+      if (master && p.y >= WH - 190) {
         killPlayer(p, false, true);
         sfx(SFX_SPLASH);
       }
-
-      // Send the player data to connected clients.
-      // socketActionSyncPlayer(p);
-      socketAction(4, pack(p.x, p.y, p.dx, p.dy, p.aim, p.dir, p.hp, p.ix, p.power), p.i, true);
     }
 
     // Render the changes into the DOM.
@@ -576,6 +617,13 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       transform(arrow, p.x - 7.5, p.y - 120);
       arrow.style.fill = p.team === 0 ? '#FF418B' : '#00EAFF';
     }
+
+    if (master && connected) {
+      // Send the player data to connected clients.
+      // socketActionSyncPlayer(p);
+      socketAction(4, pack(p.x, p.y, p.dx, p.dy, p.aim, p.dir, p.hp, p.ix, p.power, p.r, +(p.jumped || 0)), p.i, true);
+    }
+
   } else {
     el2.style.display = 'none';
     el3.style.display = 'none';
@@ -744,6 +792,7 @@ function activateNextTeam() {
         activeWeapon = 0;
         activeTeam = 1 - activeTeam;
         roundtime = 30;
+        paused = false;
 
         activateRandomPlayer();
         randomiseWind();
@@ -978,10 +1027,7 @@ function fireWeapon() {
   const ty = mouse.y + camera.y - vh / 2;
   const seed = (Math.random() * 2 ** 32) >>> 0;
 
-  const t = teams[activeTeam];
-  if (t[activeWeapon] !== undefined) {
-    t[activeWeapon]! -= 1
-  }
+  paused = true;
 
   switch (activeWeapon) {
     case 0: return fireBazooka(id, x, y, dir, aim, power);
@@ -996,6 +1042,16 @@ function fireWeapon() {
     case 9: return fireClusterBomb(id, x, y, dir, aim, power);
     case 10: return fireNyanCats(id, tx, ty, seed);
     case 11: return fireCricketBat(pid, x, y, dir, aim);
+  }
+}
+
+/**
+ * 
+ */
+function reduceWeaponCount() {
+  const t = teams[activeTeam];
+  if (t[activeWeapon] !== undefined) {
+    t[activeWeapon]! -= 1
   }
 }
 
@@ -1153,6 +1209,8 @@ function fireBazooka(id: number, x: number, y: number, dir: number, aim: number,
   const m = fireMissile(id, x, y, dir, aim, power);
   m.wind = true;
   m.grav = true;
+
+  reduceWeaponCount();
 }
 
 /**
@@ -1180,6 +1238,8 @@ function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: n
     m.homing = true;
 
     p.tx = p.ty = undefined;
+
+    reduceWeaponCount();
   }
 }
 
@@ -1220,6 +1280,8 @@ async function fireAirStrike(id: number, x: number, tx: number, ty: number) {
   lockCamera({ x: tx, y: ty });
   showCrosshairs(true, tx, ty);
 
+  reduceWeaponCount();
+
   setTimeout(async () => {
     for (let i = 0; i < 5; i++) {
       const dir = x < tx ? 1 : -1;
@@ -1245,6 +1307,8 @@ async function fireNyanCats(id: number, tx: number, ty: number, seed: number) {
 
   lockCamera({ x: tx, y: ty });
   showCrosshairs(true, tx, ty);
+
+  reduceWeaponCount();
 
   const rng = splitmix32(seed);
 
@@ -1314,6 +1378,7 @@ function addTracer(x1: number, y1: number, x2: number, y2: number) {
  */
 function fireShotgun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
   fireGun(id, x, y, dir, aim, seed, 1, [40, 45], 0.05, 1000, 12);
+  reduceWeaponCount();
 }
 
 /**
@@ -1321,6 +1386,7 @@ function fireShotgun(id: number, x: number, y: number, dir: number, aim: number,
  */
 function fireUzi(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
   fireGun(id, x, y, dir, aim, seed, 8, [12, 16], 0.1, 50, 13);
+  reduceWeaponCount();
 }
 
 /**
@@ -1328,6 +1394,7 @@ function fireUzi(id: number, x: number, y: number, dir: number, aim: number, see
  */
 function fireMinigun(id: number, x: number, y: number, dir: number, aim: number, seed: number) {
   fireGun(id, x, y, dir, aim, seed, 30, [16, 20], 0.125, 40, 18);
+  reduceWeaponCount();
 }
 
 /**
@@ -1441,6 +1508,7 @@ function placeDynamite(id: number, x: number, y: number ) {
   dynamites.set(id, d);
 
   cancelEndTurn();
+  reduceWeaponCount();
 }
 
 /**
@@ -1584,6 +1652,7 @@ function fireGrenade(id: number, x: number, y: number, dir: number, aim: number,
 
   lockCamera(g);
   cancelEndTurn();
+  reduceWeaponCount();
 }
 
 /**
@@ -1642,6 +1711,8 @@ function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: num
     // socketActionAddCricketBat(pid, x, y, dir, aim);
     socketAction(22, pack(pid, x, y, dir, aim));
 
+    let hit = false;
+
     for (let i = 0; i < players.length; i++) {
       const p2 = players[i];
 
@@ -1664,7 +1735,12 @@ function fireCricketBat(pid: number, x: number, y: number, dir: number, aim: num
         lockCamera(p2);
         requestEndTurn();
         flashMuzzle(p2.x, p2.y - 10);
+        hit = true;
       }
+    }
+
+    if (!hit) {
+      paused = false;
     }
   }
 }
@@ -1996,9 +2072,9 @@ function initTerrain(home = false) {
     }
 
     // Add a few holes to make the home screen look more interesting.
-    addHoles(800, WH - 720, 80);
-    addHoles(190, WH - 550, 80);
-    addHoles(1470, WH - 420, 80);
+    addHoles(1300, WH - 820, 80);
+    addHoles(690, WH - 650, 80);
+    addHoles(1970, WH - 520, 80);
   }
 }
 
@@ -2027,7 +2103,7 @@ function initTerrainLayer(id: string, home = false, offset: number): HTMLElement
   let d = `M0 ${WH}`;
 
   if (home) {
-    d += `L0 ${WH - 800}L${WW} ${WH - 800}`;
+    d += `L0 ${WH - 900}L${WW} ${WH - 900}`;
   } else {
     let j = 0;
     for (let h of heights) {
@@ -2065,11 +2141,11 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
 
   if (home) {
     const logo1 = logo.cloneNode(true) as HTMLElement;
-    attrNS(logo1, 'transform', `translate(180, ${WH - 720 + offset}) scale(4.5)`);
+    attrNS(logo1, 'transform', `translate(680, ${WH - 820 + offset}) scale(4.5)`);
     layer.appendChild(logo1);
 
     const logo2 = logo.cloneNode(true) as HTMLElement;
-    attrNS(logo2, 'transform', `translate(180, ${WH - 690}) scale(4.5)`);
+    attrNS(logo2, 'transform', `translate(680, ${WH - 790}) scale(4.5)`);
     layer.appendChild(logo2);
   }
 
@@ -2082,7 +2158,7 @@ function initMask(id: string, home = false, offset: number): HTMLElement {
 function initWater(id: string, offset: number) {
   const rect = docElem(id)!;
   attrNS(rect, 'x', (-offset * 2.7 + rngi(-40, 0)));
-  attrNS(rect, 'y', (WH - 100 - offset));
+  attrNS(rect, 'y', (WH - 200 - offset));
   attrNS(rect, 'width', OCEAN_SIZE);
 }
 
@@ -2203,8 +2279,6 @@ function initSvg() {
   // Duplicate the crosshairs icon into a few places.
   crosshairs.innerHTML = ch.innerHTML;
   targetlock.innerHTML = ch.innerHTML;
-
-
 }
 
 /**
@@ -2453,8 +2527,6 @@ function menuShow(el: HTMLElement, show: boolean) {
 // ======== BITMAP TEXT ===========================================================================
 // ================================================================================================
 
-let captionsttl = 0;
-
 /**
  * Draw some bitmap text inside of the given element.
  */
@@ -2504,13 +2576,6 @@ function sfx(params: any[]) {
 // ================================================================================================
 // ======== MULTIPLAYER ===========================================================================
 // ================================================================================================
-
-// Connect to the relay server, and listen for messages.
-let socket: WebSocket | null = null;
-let syncttl = 0;
-let pending: Map<string, string> = new Map();
-let sent: Map<string, string> = new Map();
-let callbacks: ((data: string) => void)[] = [];
 
 /**
  * 
@@ -2590,12 +2655,13 @@ function socketRegister(cb: (data: string) => void) {
 
 // "00" Request from other client to join.
 socketRegister(() => {
-  if (started) {
+  if (!started) {
     // socketActionAcceptJoin();
     socketAction(1, JSON.stringify([heights, players, holes]));
     socketActionGameState();
     menuShow(menu4, false);
     connected = true;
+    started = true;
   }
 });
 
@@ -2605,6 +2671,7 @@ socketRegister((data) => {
   heights = json[0];
   players = json[1];
 
+  initTeams();
   initTerrain(false);
   unlockCamera();
   menuShow(menu5, false);
@@ -2612,6 +2679,7 @@ socketRegister((data) => {
   started = true;
   master = false;
   connected = true;
+  roundtime = 30;
 
   for (const h of json[2]) {
     addHoles(h.x, h.y, h.r);
@@ -2638,6 +2706,7 @@ socketRegister((data) => {
 socketRegister(() => {
   master = true;
   roundtime = 30;
+  paused = false;
   caption(`TEAM ${activeTeam + 1} IT'S YOUR TURN`);
 });
 
@@ -2645,7 +2714,7 @@ socketRegister(() => {
 
 // "04" Sync the state of a player.
 socketRegister((data) => {
-  const [i, x, y, dx, dy, aim, dir, hp, ix, power] = unpack(data);
+  const [i, x, y, dx, dy, aim, dir, hp, ix, power, r, jumped] = unpack(data);
   const p = players[int(i)];
   if (p) {
     p.x = f(x);
@@ -2656,6 +2725,8 @@ socketRegister((data) => {
     p.dir = dir === '1' ? 1 : -1;
     p.ix = f(ix);
     p.power = f(power);
+    p.r = f(r);
+    p.jumped = jumped === '1';
 
     if(p.hp !== int(hp)) {
       p.hp = int(hp);

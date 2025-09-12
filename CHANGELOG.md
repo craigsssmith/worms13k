@@ -1,16 +1,13 @@
-## TODO
-
-- Launch game!
-- Fix timers on multiplayer.
-- Players don't rotate on multiplayer.
-- Check finite weapon counts on multiplayer.
-
 ## Day 30 (12th September)
 
 - Added finite weapon counts.
 - Optimised some assets.
+- Fixed round timer on multiplayer.
+- Better syncing of player state in multiplayer.
+- Pause round timer on weapon fire.
+- Fix bug with cricket bat where it hits nothing.
 
-> 13236 (99.5%)
+> 13285 (99.8%)
 
 ## Day 29 (11th September)
 
