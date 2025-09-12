@@ -88,6 +88,10 @@ body,
   background: #8AE000;
 }
 
+.weapon.inactive {
+  opacity: 0.5;
+}
+
 /**
  * Messages/captions.
  */

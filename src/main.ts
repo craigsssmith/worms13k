@@ -1,5 +1,5 @@
 import { createNoise2D } from './noise';
-import type { Camera, Dynamite, Elements, Explosion, Grenade, Hole, Missile, Player, Position, Raycast, Tracer, Tunnel, Vector } from './types';
+import type { Camera, Dynamite, Elements, Explosion, Grenade, Hole, Missile, Player, Position, Raycast, Team, Tracer, Tunnel, Vector } from './types';
 import { ANIMATIONS, WEAPONS } from './data';
 import { zzfx } from './zzfx';
 import './styles.css';
@@ -28,6 +28,7 @@ const SFX_JUMP = [,,369,.02,.05,.09,1,1.5,2,157,,,,,,.1,,.72,,,926];
 const SFX_SHOOT = [1.7,,185,.03,.01,.06,3,3.2,-16,-9,50,,,,,.4,.2,.67,.1,,-1376];
 const SFX_GUNSHOT = [.6,,328,.01,.01,.03,3,3.7,7,,-50,,.01,.1,7.4,,,.74,,,193];
 const SFX_BOUNCE = [,324,,.05,.09,1,3.1,-3,-8,,,,.8,38,.3,,.42,.09,,-2385];
+const SFX_SPLASH = [5,,244,.01,.01,.01,1,.7,,,,,,,,,.07,.56,.01,.04,-978];
 
 // Noise function.
 const rngf = splitmix32((Math.random() * 2 ** 32) >>> 0);
@@ -40,8 +41,8 @@ let time = 0;
 let vw = innerWidth;
 let vh = innerHeight;
 
-// Viewport element, inside of which the svg is scrolled.
-const [viewport, timer, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names, menu1, menu2, menu3, menu4, menu5, arrow, muzzle] = docElems(29);
+// Get references to all of the 'idXX' elements in the page.
+const [ch, timer, svg, playersContainer, particles, objects, crosshairs, targetlock, powerbar, powerbarMask, weapons, weaponLabel, windleft, windright, captions, glyph, explosion, tracer, logo, svg2, svg3, names, menu1, menu2, menu3, menu4, menu5, arrow, muzzle] = docElems(29);
 
 // Keep track of the holes and tunnels in the terrain.
 let holes: Hole[] = [];
@@ -63,6 +64,7 @@ let cursor = 0;
 let timeout: NodeJS.Timeout | null = null;
 
 // Create a series of players, 4 for each team.
+let teams: Team[] = [];
 let players: Player[] = [];
 let activePlayer = 0;
 let activeTeam = 0;
@@ -229,6 +231,7 @@ function startRegularGame() {
     initHeights();
     initTerrain(false);
     initTerrainDamage();
+    initTeams();
     initPlayers();
     randomiseWind();
     unlockCamera();
@@ -343,6 +346,14 @@ function updateWind() {
 // ================================================================================================
 // ======== PLAYERS ===============================================================================
 // ================================================================================================
+
+/**
+ * 
+ */
+function initTeams() {
+  teams[0] = [,,,2,2,,1,1,1,3,1,,];
+  teams[1] = [,,,2,2,,1,1,1,3,1,,];
+}
 
 /**
  * Initial two teams of players, four on each team.
@@ -516,6 +527,7 @@ function updatePlayer(p: Player, active: boolean, delta: number) {
       // If the player falls into the ocean, mark them as dead and gone immediately.
       if (master && p.y >= WH - 100) {
         killPlayer(p, false, true);
+        sfx(SFX_SPLASH);
       }
 
       // Send the player data to connected clients.
@@ -926,7 +938,7 @@ function initWeaponsUI() {
     el.innerHTML = `<svg>${icon}</svg>`;
 
     el.addEventListener('mousedown', function() {
-      if (master && connected) {
+      if (master && connected && teams[activeTeam][i] !== 0) {
         activeWeapon = i;
         socketActionGameState();
         updateWeaponUI();
@@ -944,10 +956,15 @@ function initWeaponsUI() {
  * 
  */
 function updateWeaponUI() {
-  text(weaponLabel, WEAPONS[activeWeapon][5]);
+  const qty = teams[activeTeam]?.[activeWeapon];
+  const label = WEAPONS[activeWeapon][5];
+
+  text(weaponLabel, `${label}${qty === undefined ? '' : ' X ' + qty}`);
 
   for (let i = 0; i < WEAPONS.length; i++) {
-    weapons.children.item(i)?.classList.toggle('active', i === activeWeapon);
+    const el = weapons.children.item(i)?.classList;
+    el?.toggle('active', i === activeWeapon);
+    el?.toggle('inactive', teams[activeTeam]?.[i] === 0);
   }
 }
 
@@ -960,6 +977,11 @@ function fireWeapon() {
   const tx = mouse.x + camera.x - vw / 2;
   const ty = mouse.y + camera.y - vh / 2;
   const seed = (Math.random() * 2 ** 32) >>> 0;
+
+  const t = teams[activeTeam];
+  if (t[activeWeapon] !== undefined) {
+    t[activeWeapon]! -= 1
+  }
 
   switch (activeWeapon) {
     case 0: return fireBazooka(id, x, y, dir, aim, power);
@@ -2177,6 +2199,12 @@ function initSvg() {
   attr(svg3, 'height', WH);
 
   document.body.style.cursor = `url('data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/2000/svg" width="27" height="36"><path fill="#FF418B" stroke="#000" stroke-width="2" d="m20 25 2 6c0 2-4 4-7 4-2 0-3-2-5-5l-5 2c-3 0-4-6-4-15C1 9 1 3 3 1c2-1 7 2 13 8 6 4 10 9 10 11s-2 4-6 5Z"/><path fill="#FF859F" d="M4 5c1-3 3-1 5 1-5-2-5 6-4 22C3 21 3 8 4 5Z"/></svg>')}') 6 5, pointer`;
+
+  // Duplicate the crosshairs icon into a few places.
+  crosshairs.innerHTML = ch.innerHTML;
+  targetlock.innerHTML = ch.innerHTML;
+
+
 }
 
 /**

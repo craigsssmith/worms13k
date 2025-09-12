@@ -58,6 +58,8 @@ export type Grenade = Position & {
   power: number;
 };
 
+export type Team = (number | undefined)[];
+
 export type Player = Position & {
   id: number;
   i: number;

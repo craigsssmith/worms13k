@@ -1,3 +1,17 @@
+## TODO
+
+- Launch game!
+- Fix timers on multiplayer.
+- Players don't rotate on multiplayer.
+- Check finite weapon counts on multiplayer.
+
+## Day 30 (12th September)
+
+- Added finite weapon counts.
+- Optimised some assets.
+
+> 13236 (99.5%)
+
 ## Day 29 (11th September)
 
 - Added some pre-existing holes when the game starts.
@@ -6,8 +20,9 @@
 - Prevent scrolling when selecting weapons.
 - Added timer, skipping a turn after 30 seconds.
 - Sound effects for gunshots and grenade bounces.
+- Sound effect for falling in water.
 
-> 13239 bytes (99.5%)
+> 13288 bytes (99.8%)
 
 ## Day 28 (10th September)
 
