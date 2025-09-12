@@ -1206,7 +1206,7 @@ function fireBazooka(id: number, x: number, y: number, dir: number, aim: number,
     socketAction(11, pack(id, x, y, dir, aim, power));
   }
 
-  const m = fireMissile(id, x, y, dir, aim, power);
+  const m = fireMissile(id, x, y, dir, aim, power * 1.5);
   m.wind = true;
   m.grav = true;
 
@@ -1232,7 +1232,7 @@ function fireHomingMissile(id: number, x: number, y: number, dir: number, aim: n
     showCrosshairs(true, tx, ty);
 
   } else if (p.tx && p.ty) {
-    const m = fireMissile(id, x, y, dir, aim, power);
+    const m = fireMissile(id, x, y, dir, aim, power * 1.5);
     m.tx = p.tx;
     m.ty = p.ty;
     m.homing = true;

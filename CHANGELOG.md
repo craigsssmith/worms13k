@@ -6,8 +6,9 @@
 - Better syncing of player state in multiplayer.
 - Pause round timer on weapon fire.
 - Fix bug with cricket bat where it hits nothing.
+- Increased the max power for missiles.
 
-> 13285 (99.8%)
+> 13304 (99.9%)
 
 ## Day 29 (11th September)
 
