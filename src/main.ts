@@ -2521,6 +2521,7 @@ function updateDestroyedElement() {
  */
 function menuShow(el: HTMLElement, show: boolean) {
   el.style.opacity = show ? '1' : '0';
+  el.style.pointerEvents = show ? 'auto' : 'none';
 }
 
 // ================================================================================================
